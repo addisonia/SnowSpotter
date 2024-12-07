@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "562751799215",
+    "project_id": "snowspotter-d99cb",
+    "storage_bucket": "snowspotter-d99cb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562751799215:android:63c5dda2338e448f97795a",
+        "android_client_info": {
+          "package_name": "com.example.snowspotterapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEJ3uLwKzfTen4BDDsdoIytonJ7XCDan8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
