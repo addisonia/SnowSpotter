@@ -2,45 +2,43 @@ package com.example.snowspotterapp2
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.location.Location
+import android.location.*
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.URL
 import java.net.HttpURLConnection
+import java.util.Locale
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
     private val weatherScope = CoroutineScope(Dispatchers.IO + Job())
     private val API_KEY = "6d05802c8dd306c4a02c96c9bf433ea2"
     private val TAG = "MapsActivity"
+
+    // Madison, WI coordinates
+    private val madisonLocation = LatLng(43.0731, -89.4012)
+    private var userMarker: Marker? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -57,23 +55,73 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         )
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(northAmerica, 100))
 
-        enableMyLocation()
+        // Add custom marker for user location in Madison
+        showUserLocation()
         fetchSnowLocations()
     }
 
-    private fun enableMyLocation() {
+    private fun showUserLocation() {
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            mMap.isMyLocationEnabled = true
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED) {
+
+            // Remove previous marker if it exists
+            userMarker?.remove()
+
+            // Add marker at Madison location
+            userMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(madisonLocation)
+                    .title("Your Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+            )
+
+            // Show city name
+            val geocoder = Geocoder(this, Locale.getDefault())
+            try {
+                val addresses = geocoder.getFromLocation(
+                    madisonLocation.latitude,
+                    madisonLocation.longitude,
+                    1
+                )
+                addresses?.firstOrNull()?.let { address ->
+                    val cityName = address.locality ?: address.subAdminArea ?: address.adminArea
+                    cityName?.let { city ->
+                        Toast.makeText(this, "Located near: $city", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting location name", e)
+            }
+
         } else {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
                 LOCATION_PERMISSION_REQUEST_CODE
             )
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    showUserLocation()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Location permission denied. Using default location: Madison, WI",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 
@@ -100,7 +148,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     connection.requestMethod = "GET"
 
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    Log.d(TAG, "Weather API Response for region (${region.first}, ${region.second}): $response")
 
                     val jsonResponse = JSONObject(response)
                     val list = jsonResponse.getJSONArray("list")
@@ -111,7 +158,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                             val weather = item.getJSONArray("weather").getJSONObject(0)
                             val weatherId = weather.getInt("id")
 
-                            // Check for snow conditions (codes 600-622)
                             if (weatherId in 600..622) {
                                 totalSnowLocations++
                                 val coord = item.getJSONObject("coord")
@@ -125,8 +171,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .position(position)
                                     .title("$name")
                                     .snippet("Condition: $desc"))
-
-                                Log.d(TAG, "Added snow marker at $name ($lat, $lon)")
                             }
                         }
                     }
@@ -154,27 +198,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     Toast.makeText(
                         this@MapsActivity,
                         "Error fetching weather data: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            LOCATION_PERMISSION_REQUEST_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    enableMyLocation()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Location permission denied",
                         Toast.LENGTH_LONG
                     ).show()
                 }
