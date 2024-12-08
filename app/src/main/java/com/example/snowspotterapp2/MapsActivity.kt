@@ -16,6 +16,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
 import kotlinx.coroutines.*
@@ -48,6 +49,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+
+        // Set default view to show most of North America
+        val northAmerica = LatLngBounds(
+            LatLng(20.0, -130.0),  // SW bounds
+            LatLng(60.0, -60.0)   // NE bounds
+        )
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(northAmerica, 100))
+
         enableMyLocation()
         fetchSnowLocations()
     }
@@ -59,7 +68,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             mMap.isMyLocationEnabled = true
-            getCurrentLocation()
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -69,79 +77,84 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun getCurrentLocation() {
-        try {
-            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                location?.let {
-                    val currentLatLng = LatLng(it.latitude, it.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 10f))
-                }
-            }
-        } catch (e: SecurityException) {
-            Toast.makeText(this, "Location permission needed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun fetchSnowLocations() {
         weatherScope.launch {
             try {
-                // Using the find weather API to get a broader range of weather data
-                val url = URL("https://api.openweathermap.org/data/2.5/find?" +
-                        "lat=45&lon=-100" +  // Center point (adjust as needed)
-                        "&cnt=50" +  // Number of cities to return
-                        "&appid=$API_KEY")
+                // Multiple API calls to cover different regions
+                val regions = listOf(
+                    Pair(45.0, -100.0),  // Central North America
+                    Pair(45.0, -80.0),   // Eastern North America
+                    Pair(45.0, -120.0),  // Western North America
+                    Pair(60.0, -100.0)   // Northern regions
+                )
 
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
+                var totalSnowLocations = 0
 
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d(TAG, "Weather API Response: $response")  // Debug log
+                for (region in regions) {
+                    val url = URL("https://api.openweathermap.org/data/2.5/find?" +
+                            "lat=${region.first}&lon=${region.second}" +
+                            "&cnt=50" +  // Maximum cities per request
+                            "&appid=$API_KEY")
 
-                val jsonResponse = JSONObject(response)
-                val list = jsonResponse.getJSONArray("list")
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
 
-                var snowLocationsFound = false
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    Log.d(TAG, "Weather API Response for region (${region.first}, ${region.second}): $response")
 
-                withContext(Dispatchers.Main) {
-                    for (i in 0 until list.length()) {
-                        val item = list.getJSONObject(i)
-                        val weather = item.getJSONArray("weather").getJSONObject(0)
-                        val weatherId = weather.getInt("id")
+                    val jsonResponse = JSONObject(response)
+                    val list = jsonResponse.getJSONArray("list")
 
-                        // Check for snow conditions (codes 600-622)
-                        if (weatherId in 600..622) {
-                            snowLocationsFound = true
-                            val coord = item.getJSONObject("coord")
-                            val lat = coord.getDouble("lat")
-                            val lon = coord.getDouble("lon")
-                            val name = item.getString("name")
-                            val desc = weather.getString("description")
+                    withContext(Dispatchers.Main) {
+                        for (i in 0 until list.length()) {
+                            val item = list.getJSONObject(i)
+                            val weather = item.getJSONArray("weather").getJSONObject(0)
+                            val weatherId = weather.getInt("id")
 
-                            val position = LatLng(lat, lon)
-                            mMap.addMarker(MarkerOptions()
-                                .position(position)
-                                .title("$name")
-                                .snippet("Condition: $desc"))
+                            // Check for snow conditions (codes 600-622)
+                            if (weatherId in 600..622) {
+                                totalSnowLocations++
+                                val coord = item.getJSONObject("coord")
+                                val lat = coord.getDouble("lat")
+                                val lon = coord.getDouble("lon")
+                                val name = item.getString("name")
+                                val desc = weather.getString("description")
 
-                            Log.d(TAG, "Added snow marker at $name ($lat, $lon)")  // Debug log
+                                val position = LatLng(lat, lon)
+                                mMap.addMarker(MarkerOptions()
+                                    .position(position)
+                                    .title("$name")
+                                    .snippet("Condition: $desc"))
+
+                                Log.d(TAG, "Added snow marker at $name ($lat, $lon)")
+                            }
                         }
                     }
+                }
 
-                    if (!snowLocationsFound) {
+                withContext(Dispatchers.Main) {
+                    if (totalSnowLocations == 0) {
                         Toast.makeText(
                             this@MapsActivity,
-                            "No snow conditions found in the current area",
+                            "No snow conditions found in North America",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@MapsActivity,
+                            "Found $totalSnowLocations locations with snow!",
                             Toast.LENGTH_LONG
                         ).show()
                     }
                 }
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching weather data", e)  // Debug log
+                Log.e(TAG, "Error fetching weather data", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         this@MapsActivity,
                         "Error fetching weather data: ${e.message}",
-                        Toast.LENGTH_SHORT
+                        Toast.LENGTH_LONG
                     ).show()
                 }
             }
@@ -162,7 +175,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     Toast.makeText(
                         this,
                         "Location permission denied",
-                        Toast.LENGTH_SHORT
+                        Toast.LENGTH_LONG
                     ).show()
                 }
             }
