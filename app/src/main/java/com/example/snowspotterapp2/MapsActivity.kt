@@ -6,7 +6,8 @@ import android.location.*
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -14,12 +15,16 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.android.material.snackbar.Snackbar
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.URL
 import java.net.HttpURLConnection
 import java.util.Locale
+import android.widget.TextView
+import android.view.Gravity
+import android.view.View
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -43,6 +48,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+    }
+
+    private fun showSnackbar(message: String) {
+        val snackbar = Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+        val snackbarView = snackbar.view
+        val params = snackbarView.layoutParams as ViewGroup.MarginLayoutParams
+        params.bottomMargin = resources.getDimensionPixelSize(R.dimen.snackbar_margin_bottom)
+        snackbarView.layoutParams = params
+
+        // Center the text
+        val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.textAlignment = View.TEXT_ALIGNMENT_CENTER
+        textView.gravity = Gravity.CENTER_HORIZONTAL
+
+        snackbar.show()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -88,7 +108,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 addresses?.firstOrNull()?.let { address ->
                     val cityName = address.locality ?: address.subAdminArea ?: address.adminArea
                     cityName?.let { city ->
-                        Toast.makeText(this, "Located near: $city", Toast.LENGTH_LONG).show()
+                        showSnackbar("Located near: $city")
                     }
                 }
             } catch (e: Exception) {
@@ -115,11 +135,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     showUserLocation()
                 } else {
-                    Toast.makeText(
-                        this,
-                        "Location permission denied. Using default location: Madison, WI",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    showSnackbar("Location permission denied. Using default location: Madison, WI")
                 }
             }
         }
@@ -178,28 +194,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 withContext(Dispatchers.Main) {
                     if (totalSnowLocations == 0) {
-                        Toast.makeText(
-                            this@MapsActivity,
-                            "No snow conditions found in North America",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        showSnackbar("No snow conditions found in North America")
                     } else {
-                        Toast.makeText(
-                            this@MapsActivity,
-                            "Found $totalSnowLocations locations with snow!",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        showSnackbar("Found $totalSnowLocations locations with snow!")
                     }
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching weather data", e)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@MapsActivity,
-                        "Error fetching weather data: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    showSnackbar("Error fetching weather data: ${e.message}")
                 }
             }
         }
