@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import android.view.View
+import android.widget.TextView
+import android.view.Gravity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -22,9 +24,7 @@ import org.json.JSONObject
 import java.net.URL
 import java.net.HttpURLConnection
 import java.util.Locale
-import android.widget.TextView
-import android.view.Gravity
-import android.view.View
+import kotlin.math.*
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -39,6 +39,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val madisonLocation = LatLng(43.0731, -89.4012)
     private var userMarker: Marker? = null
 
+    // Store snow locations
+    private val snowLocations = mutableListOf<SnowLocation>()
+
+    data class SnowLocation(
+        val position: LatLng,
+        val name: String,
+        val description: String
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -48,6 +57,61 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        // Set up Find Me Snow button click listener
+        binding.findSnowButton.setOnClickListener {
+            findNearestSnow()
+        }
+    }
+
+    private fun findNearestSnow() {
+        if (snowLocations.isEmpty()) {
+            showSnackbar("No snow locations found yet! Try again in a moment.")
+            return
+        }
+
+        // Find closest snow location
+        var closestLocation: SnowLocation? = null
+        var shortestDistance = Double.MAX_VALUE
+
+        for (location in snowLocations) {
+            val distance = calculateDistance(
+                madisonLocation.latitude, madisonLocation.longitude,
+                location.position.latitude, location.position.longitude
+            )
+            if (distance < shortestDistance) {
+                shortestDistance = distance
+                closestLocation = location
+            }
+        }
+
+        closestLocation?.let { location ->
+            // Convert distance to miles
+            val distanceInMiles = (shortestDistance * 0.621371).roundToInt()
+
+            // Animate camera to location
+            mMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(location.position, 8f),
+                1500,  // 1.5 seconds
+                null
+            )
+
+            // Show distance and location info
+            showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
+        }
+    }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val R = 6371 // Earth's radius in kilometers
+
+        val latDistance = Math.toRadians(lat2 - lat1)
+        val lonDistance = Math.toRadians(lon2 - lon1)
+        val a = sin(latDistance / 2) * sin(latDistance / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(lonDistance / 2) * sin(lonDistance / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return R * c  // Distance in kilometers
     }
 
     private fun showSnackbar(message: String) {
@@ -144,7 +208,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun fetchSnowLocations() {
         weatherScope.launch {
             try {
-                // Multiple API calls to cover different regions
+                // Clear previous snow locations
+                snowLocations.clear()
+
                 val regions = listOf(
                     Pair(45.0, -100.0),  // Central North America
                     Pair(45.0, -80.0),   // Eastern North America
@@ -187,6 +253,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .position(position)
                                     .title("$name")
                                     .snippet("Condition: $desc"))
+
+                                // Store snow location
+                                snowLocations.add(SnowLocation(position, name, desc))
                             }
                         }
                     }
