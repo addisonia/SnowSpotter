@@ -96,23 +96,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             popupWindow.elevation = 10f
 
-            // Update click listeners to use the container views
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
-                showSnackbar("Theme options clicked")
-                // TODO: Implement theme selection
-                popupWindow.dismiss()
+                popupWindow.dismiss() // Dismiss the main menu
+                showSubmenu(view, R.layout.theme_submenu, "Select Theme")
             }
 
             popupView.findViewById<LinearLayout>(R.id.option2Container).setOnClickListener {
-                showSnackbar("Basemap options clicked")
-                // TODO: Implement basemap selection
-                popupWindow.dismiss()
+                popupWindow.dismiss() // Dismiss the main menu
+                showSubmenu(view, R.layout.basemap_submenu, "Select Basemap")
             }
 
             // Handle music toggle
             val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
             musicToggle.setOnCheckedChangeListener { _, isChecked ->
-                showSnackbar("Music ${if (isChecked) "enabled" else "disabled"}")
                 // TODO: Implement music toggle functionality
             }
 
@@ -134,6 +130,64 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             showSnackbar("User profile clicked!")
         }
     }
+
+    private fun showSubmenu(view: View, layoutResId: Int, title: String) {
+        val submenuView = layoutInflater.inflate(layoutResId, null)
+
+        val submenuWindow = PopupWindow(
+            submenuView,
+            250.dpToPx(this),
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        submenuWindow.elevation = 10f
+
+        // Calculate same position as main menu
+        val location = IntArray(2)
+        view.getLocationOnScreen(location)
+
+        // Set up click listeners based on menu type
+        when (layoutResId) {
+            R.layout.theme_submenu -> {
+                submenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
+                    showSnackbar("Theme 1 selected")
+                    submenuWindow.dismiss()
+                }
+                submenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
+                    showSnackbar("Theme 2 selected")
+                    submenuWindow.dismiss()
+                }
+                submenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
+                    showSnackbar("Theme 3 selected")
+                    submenuWindow.dismiss()
+                }
+            }
+            R.layout.basemap_submenu -> {
+                submenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
+                    showSnackbar("Basemap 1 selected")
+                    submenuWindow.dismiss()
+                }
+                submenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
+                    showSnackbar("Basemap 2 selected")
+                    submenuWindow.dismiss()
+                }
+                submenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
+                    showSnackbar("Basemap 3 selected")
+                    submenuWindow.dismiss()
+                }
+            }
+        }
+
+        submenuWindow.showAtLocation(
+            view,
+            Gravity.NO_GRAVITY,
+            location[0] - 10,
+            location[1] - 500
+        )
+    }
+
+
 
     private fun createUserLocationMarker() {
         // Create semi-transparent circle marker for user location
