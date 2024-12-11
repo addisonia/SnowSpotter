@@ -7,33 +7,40 @@
     android:elevation="20dp"
     android:padding="8dp">
 
-    <TextView
-        android:id="@+id/basemapOption1"
+    <LinearLayout
+        android:id="@+id/submenuContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Basemap Option 1"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/basemapOption2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Basemap Option 2"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        <TextView
+            android:id="@+id/basemapOption1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Basemap 1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
 
-    <TextView
-        android:id="@+id/basemapOption3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Basemap Option 3"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        <TextView
+            android:id="@+id/basemapOption2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Basemap 2"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <TextView
+            android:id="@+id/basemapOption3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Basemap 3"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
+    </LinearLayout>
 </LinearLayout>

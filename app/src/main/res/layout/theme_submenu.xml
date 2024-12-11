@@ -7,33 +7,40 @@
     android:elevation="20dp"
     android:padding="8dp">
 
-    <TextView
-        android:id="@+id/themeOption1"
+    <LinearLayout
+        android:id="@+id/submenuContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Theme Option 1"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/themeOption2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Theme Option 2"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        <TextView
+            android:id="@+id/themeOption1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Theme 1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
 
-    <TextView
-        android:id="@+id/themeOption3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Theme Option 3"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground"/>
+        <TextView
+            android:id="@+id/themeOption2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Theme 2"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <TextView
+            android:id="@+id/themeOption3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Theme 3"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"/>
+    </LinearLayout>
 </LinearLayout>

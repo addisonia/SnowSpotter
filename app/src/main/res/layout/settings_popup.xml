@@ -9,83 +9,84 @@
     android:padding="8dp">
 
     <LinearLayout
-        android:id="@+id/option1Container"
+        android:id="@+id/menuContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground">
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/option1"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/option1Container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Change Theme"/>
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
 
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="4dp"
+            <TextView
+                android:id="@+id/option1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Change Theme"/>
 
-            android:src="@drawable/arrow_right"/>
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/arrow_right"/>
+        </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/option2Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
 
+            <TextView
+                android:id="@+id/option2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Change Basemap"/>
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="4dp"
+                android:src="@drawable/arrow_right"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/option3Container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
+
+            <TextView
+                android:id="@+id/option3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Music"/>
+
+            <Switch
+                android:id="@+id/musicToggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="0dp"/>
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/option2Container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground">
-
-        <TextView
-            android:id="@+id/option2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Change Basemap"/>
-
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="4dp"
-
-            android:src="@drawable/arrow_right"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/option3Container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:background="?android:attr/selectableItemBackground">
-
-        <TextView
-            android:id="@+id/option3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Music"/>
-
-        <Switch
-            android:id="@+id/musicToggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="0dp"/>
-    </LinearLayout>
-
 </LinearLayout>

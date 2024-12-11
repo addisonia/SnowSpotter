@@ -1,17 +1,21 @@
 package com.example.snowspotterapp2
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.ViewGroup
 import android.view.View
 import android.widget.TextView
 import android.view.Gravity
+import android.view.animation.AnimationUtils
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.PopupWindow
@@ -86,24 +90,121 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         settingsButton.setOnClickListener { view ->
             val popupView = layoutInflater.inflate(R.layout.settings_popup, null)
-
             val popupWindow = PopupWindow(
                 popupView,
                 250.dpToPx(this),
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 true
             )
-
             popupWindow.elevation = 10f
 
+            // Pre-create submenus
+            val themeSubmenuView = layoutInflater.inflate(R.layout.theme_submenu, null)
+            val themeSubmenuWindow = PopupWindow(
+                themeSubmenuView,
+                250.dpToPx(this),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            themeSubmenuWindow.elevation = 10f
+
+            // Get content containers
+            val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
+            val themeSubmenuContent = themeSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
+
+            // Initially set the submenu content to invisible
+            themeSubmenuContent.alpha = 0f
+
+            val basemapSubmenuView = layoutInflater.inflate(R.layout.basemap_submenu, null)
+            val basemapSubmenuWindow = PopupWindow(
+                basemapSubmenuView,
+                250.dpToPx(this),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            basemapSubmenuWindow.elevation = 10f
+
+            val basemapSubmenuContent = basemapSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
+            basemapSubmenuContent.alpha = 0f
+
+            // Set up theme submenu listeners
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
+                showSnackbar("Theme 1 selected")
+                themeSubmenuWindow.dismiss()
+            }
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
+                showSnackbar("Theme 2 selected")
+                themeSubmenuWindow.dismiss()
+            }
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
+                showSnackbar("Theme 3 selected")
+                themeSubmenuWindow.dismiss()
+            }
+
+            // Set up basemap submenu listeners
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
+                showSnackbar("Basemap 1 selected")
+                basemapSubmenuWindow.dismiss()
+            }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
+                showSnackbar("Basemap 2 selected")
+                basemapSubmenuWindow.dismiss()
+            }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
+                showSnackbar("Basemap 3 selected")
+                basemapSubmenuWindow.dismiss()
+            }
+
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
-                popupWindow.dismiss() // Dismiss the main menu
-                showSubmenu(view, R.layout.theme_submenu, "Select Theme")
+                val location = IntArray(2)
+                view.getLocationOnScreen(location)
+
+                // Show submenu window (without animation)
+                themeSubmenuWindow.showAtLocation(
+                    view,
+                    Gravity.NO_GRAVITY,
+                    location[0] - 10,
+                    location[1] - 500
+                )
+
+                // Animate main menu content out
+                mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    // Fade in and slide in submenu content
+                    themeSubmenuContent.alpha = 1f
+                    themeSubmenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
+                }, 50)
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    popupWindow.dismiss()
+                }, 300)
             }
 
             popupView.findViewById<LinearLayout>(R.id.option2Container).setOnClickListener {
-                popupWindow.dismiss() // Dismiss the main menu
-                showSubmenu(view, R.layout.basemap_submenu, "Select Basemap")
+                val location = IntArray(2)
+                view.getLocationOnScreen(location)
+
+                // Show submenu window (without animation)
+                basemapSubmenuWindow.showAtLocation(
+                    view,
+                    Gravity.NO_GRAVITY,
+                    location[0] - 10,
+                    location[1] - 500
+                )
+
+                // Animate main menu content out
+                mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    // Fade in and slide in submenu content
+                    basemapSubmenuContent.alpha = 1f
+                    basemapSubmenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
+                }, 50)
+
+                Handler(Looper.getMainLooper()).postDelayed({
+                    popupWindow.dismiss()
+                }, 300)
             }
 
             // Handle music toggle
@@ -112,15 +213,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 // TODO: Implement music toggle functionality
             }
 
-            // Calculate position
+            // Show main menu
             val location = IntArray(2)
             view.getLocationOnScreen(location)
-
             popupWindow.showAtLocation(
                 view,
                 Gravity.NO_GRAVITY,
                 location[0] - 10,
-                location[1] - 500
+                location[1] - 515
             )
         }
 
@@ -131,62 +231,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun showSubmenu(view: View, layoutResId: Int, title: String) {
-        val submenuView = layoutInflater.inflate(layoutResId, null)
-
-        val submenuWindow = PopupWindow(
-            submenuView,
-            250.dpToPx(this),
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        )
-
-        submenuWindow.elevation = 10f
-
-        // Calculate same position as main menu
-        val location = IntArray(2)
-        view.getLocationOnScreen(location)
-
-        // Set up click listeners based on menu type
-        when (layoutResId) {
-            R.layout.theme_submenu -> {
-                submenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
-                    showSnackbar("Theme 1 selected")
-                    submenuWindow.dismiss()
-                }
-                submenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
-                    showSnackbar("Theme 2 selected")
-                    submenuWindow.dismiss()
-                }
-                submenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
-                    showSnackbar("Theme 3 selected")
-                    submenuWindow.dismiss()
-                }
-            }
-            R.layout.basemap_submenu -> {
-                submenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
-                    showSnackbar("Basemap 1 selected")
-                    submenuWindow.dismiss()
-                }
-                submenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
-                    showSnackbar("Basemap 2 selected")
-                    submenuWindow.dismiss()
-                }
-                submenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
-                    showSnackbar("Basemap 3 selected")
-                    submenuWindow.dismiss()
-                }
-            }
+    private fun setupThemeSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
+        submenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
+            showSnackbar("Theme 1 selected")
+            submenuWindow.dismiss()
         }
-
-        submenuWindow.showAtLocation(
-            view,
-            Gravity.NO_GRAVITY,
-            location[0] - 10,
-            location[1] - 500
-        )
+        submenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
+            showSnackbar("Theme 2 selected")
+            submenuWindow.dismiss()
+        }
+        submenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
+            showSnackbar("Theme 3 selected")
+            submenuWindow.dismiss()
+        }
     }
 
+    private fun setupBasemapSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
+        submenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
+            showSnackbar("Basemap 1 selected")
+            submenuWindow.dismiss()
+        }
+        submenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
+            showSnackbar("Basemap 2 selected")
+            submenuWindow.dismiss()
+        }
+        submenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
+            showSnackbar("Basemap 3 selected")
+            submenuWindow.dismiss()
+        }
+    }
 
 
     private fun createUserLocationMarker() {
