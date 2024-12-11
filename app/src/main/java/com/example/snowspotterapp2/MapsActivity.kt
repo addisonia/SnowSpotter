@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
+import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
@@ -69,6 +70,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var settingsButton: MaterialButton
     private lateinit var userButton: MaterialButton
+
+
+    private var mediaPlayer: MediaPlayer? = null
+    private var isMusicPlaying = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -209,8 +215,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             // Handle music toggle
             val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
+            musicToggle.isChecked = true  // Set to ON by default
             musicToggle.setOnCheckedChangeListener { _, isChecked ->
-                // TODO: Implement music toggle functionality
+                if (isChecked) {
+                    startMusic()
+                } else {
+                    stopMusic()
+                }
             }
 
             // Show main menu
@@ -229,6 +240,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             // TODO: Implement user profile functionality
             showSnackbar("User profile clicked!")
         }
+
+        initializeMusic()
+
     }
 
     private fun setupThemeSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
@@ -553,8 +567,65 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
+    //Music
+    private fun initializeMusic() {
+        mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
+        mediaPlayer?.isLooping = true  // Makes the music loop continuously
+        mediaPlayer?.setVolume(1.0f, 1.0f)  // Set volume to 50%
+
+        // Get song duration in milliseconds
+        val songDuration = mediaPlayer?.duration ?: 0
+
+        // Start a periodic check to handle fade out before loop
+        Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
+            override fun run() {
+                mediaPlayer?.let { player ->
+                    val currentPosition = player.currentPosition
+                    if (currentPosition >= songDuration - 5000) {  // Last 5 seconds
+                        fadeOutMusic()
+                    }
+                    // Reset volume when song loops
+                    if (currentPosition < 100) {  // Near the start
+                        player.setVolume(1.0f, 1.0f)
+                    }
+                }
+                Handler(Looper.getMainLooper()).postDelayed(this, 1000)  // Check every second
+            }
+        }, 1000)
+
+        //start playing by default
+        startMusic()
+    }
+
+    private fun startMusic() {
+        if (!isMusicPlaying) {
+            mediaPlayer?.start()
+            isMusicPlaying = true
+        }
+    }
+
+    private fun fadeOutMusic(duration: Long = 5000) {  // 5000ms = 5 seconds
+        val fadeOut = ValueAnimator.ofFloat(1.0f, 0.0f)
+        fadeOut.duration = duration
+        fadeOut.addUpdateListener { animation ->
+            val volume = animation.animatedValue as Float
+            mediaPlayer?.setVolume(volume, volume)
+        }
+        fadeOut.start()
+    }
+
+    private fun stopMusic() {
+        if (isMusicPlaying) {
+            mediaPlayer?.pause()
+            isMusicPlaying = false
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
         weatherScope.cancel()
     }
+
 }
