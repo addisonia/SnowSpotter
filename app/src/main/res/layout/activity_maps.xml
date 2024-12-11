@@ -12,7 +12,7 @@
         app:cardCornerRadius="12dp"
         app:cardElevation="4dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/findSnowButton"
+        app:layout_constraintBottom_toTopOf="@id/buttonContainer"
         app:layout_constraintVertical_bias="0"
         android:layout_marginBottom="16dp"
         app:strokeWidth="2dp"
@@ -26,19 +26,61 @@
 
     </androidx.cardview.widget.CardView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/findSnowButton"
+    <LinearLayout
+        android:id="@+id/buttonContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginBottom="12dp"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="12dp"
-        android:text="Find Me Snow!"
-        android:textSize="16sp"
-        android:elevation="8dp"
-        app:cornerRadius="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+        app:layout_constraintRight_toRightOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/settingsButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="12dp"
+            app:icon="@drawable/settings_button"
+            app:iconTint="@android:color/white"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="12dp"
+            android:elevation="8dp"
+            app:cornerRadius="24dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/findSnowButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp"
+            android:text="Find Me Snow!"
+            android:textSize="16sp"
+            android:elevation="8dp"
+            app:cornerRadius="24dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/userButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            app:icon="@drawable/user_button"
+            app:iconTint="@android:color/white"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="12dp"
+            android:elevation="8dp"
+            app:cornerRadius="24dp"/>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -21,6 +21,7 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.LocationSource
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.lang.Math.pow
@@ -57,6 +58,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var userCircle: Circle? = null
     private val BASE_CIRCLE_RADIUS = 25000.0 // 15km base radius
 
+    private lateinit var settingsButton: MaterialButton
+    private lateinit var userButton: MaterialButton
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -69,6 +73,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         binding.findSnowButton.setOnClickListener {
             findNextSnowLocation()
+        }
+
+        settingsButton = binding.settingsButton
+        userButton = binding.userButton
+
+        settingsButton.setOnClickListener {
+            // TODO: Implement settings functionality
+            showSnackbar("Settings clicked!")
+        }
+
+        userButton.setOnClickListener {
+            // TODO: Implement user profile functionality
+            showSnackbar("User profile clicked!")
         }
     }
 
