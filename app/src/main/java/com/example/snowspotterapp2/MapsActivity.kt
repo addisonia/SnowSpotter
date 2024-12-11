@@ -1,6 +1,7 @@
 package com.example.snowspotterapp2
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
@@ -11,6 +12,10 @@ import android.view.ViewGroup
 import android.view.View
 import android.widget.TextView
 import android.view.Gravity
+import android.widget.LinearLayout
+import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.widget.Switch
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -75,13 +80,54 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             findNextSnowLocation()
         }
 
+
         settingsButton = binding.settingsButton
         userButton = binding.userButton
 
-        settingsButton.setOnClickListener {
-            // TODO: Implement settings functionality
-            showSnackbar("Settings clicked!")
+        settingsButton.setOnClickListener { view ->
+            val popupView = layoutInflater.inflate(R.layout.settings_popup, null)
+
+            val popupWindow = PopupWindow(
+                popupView,
+                250.dpToPx(this),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            popupWindow.elevation = 10f
+
+            // Update click listeners to use the container views
+            popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
+                showSnackbar("Theme options clicked")
+                // TODO: Implement theme selection
+                popupWindow.dismiss()
+            }
+
+            popupView.findViewById<LinearLayout>(R.id.option2Container).setOnClickListener {
+                showSnackbar("Basemap options clicked")
+                // TODO: Implement basemap selection
+                popupWindow.dismiss()
+            }
+
+            // Handle music toggle
+            val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
+            musicToggle.setOnCheckedChangeListener { _, isChecked ->
+                showSnackbar("Music ${if (isChecked) "enabled" else "disabled"}")
+                // TODO: Implement music toggle functionality
+            }
+
+            // Calculate position
+            val location = IntArray(2)
+            view.getLocationOnScreen(location)
+
+            popupWindow.showAtLocation(
+                view,
+                Gravity.NO_GRAVITY,
+                location[0] - 10,
+                location[1] - 500
+            )
         }
+
 
         userButton.setOnClickListener {
             // TODO: Implement user profile functionality
@@ -373,6 +419,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
+    // Add this extension function at the end of your MapsActivity class
+    private fun Int.dpToPx(context: Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
+    }
+
 
     override fun onDestroy() {
         super.onDestroy()
