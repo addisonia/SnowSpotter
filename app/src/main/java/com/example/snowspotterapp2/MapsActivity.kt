@@ -3,6 +3,7 @@ package com.example.snowspotterapp2
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.*
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -19,8 +20,10 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
+import com.google.android.gms.maps.LocationSource
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import java.lang.Math.pow
 import java.net.URL
 import java.net.HttpURLConnection
 import java.util.Locale
@@ -39,14 +42,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val madisonLocation = LatLng(43.0731, -89.4012)
     private var userMarker: Marker? = null
 
-    // Store snow locations
+    // Store snow locations and tracking variables
     private val snowLocations = mutableListOf<SnowLocation>()
+    private var currentSnowIndex = -1
+    private var currentHighlightedMarker: Marker? = null
 
     data class SnowLocation(
         val position: LatLng,
         val name: String,
-        val description: String
+        val description: String,
+        var marker: Marker? = null
     )
+
+    private var userCircle: Circle? = null
+    private val BASE_CIRCLE_RADIUS = 25000.0 // 15km base radius
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,47 +67,83 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Set up Find Me Snow button click listener
         binding.findSnowButton.setOnClickListener {
-            findNearestSnow()
+            findNextSnowLocation()
         }
     }
 
-    private fun findNearestSnow() {
+    private fun createUserLocationMarker() {
+        // Create semi-transparent circle marker for user location
+        val circleOptions = CircleOptions()
+            .center(madisonLocation)
+            .radius(BASE_CIRCLE_RADIUS)
+            .strokeWidth(5f)  // Increased from 3f to 5f for thicker outline
+            .strokeColor(Color.argb(255, 0, 150, 255))  // Solid blue outline
+            .fillColor(Color.argb(70, 0, 255, 255))     // Semi-transparent cyan fill
+
+        userCircle = mMap.addCircle(circleOptions)
+
+        // Add zoom level listener to adjust circle size
+        mMap.setOnCameraIdleListener {
+            updateCircleSize()
+        }
+    }
+
+    private fun updateCircleSize() {
+        val zoom = mMap.cameraPosition.zoom.toDouble()
+        // Adjust radius based on zoom level (exponentially)
+        val newRadius = BASE_CIRCLE_RADIUS * pow(0.75, zoom)
+        userCircle?.radius = newRadius
+    }
+
+    private fun findNextSnowLocation() {
         if (snowLocations.isEmpty()) {
             showSnackbar("No snow locations found yet! Try again in a moment.")
             return
         }
 
-        // Find closest snow location
-        var closestLocation: SnowLocation? = null
-        var shortestDistance = Double.MAX_VALUE
+        // Reset if we've gone through all locations
+        if (currentSnowIndex >= snowLocations.size - 1) {
+            currentSnowIndex = -1
+        }
 
-        for (location in snowLocations) {
-            val distance = calculateDistance(
-                madisonLocation.latitude, madisonLocation.longitude,
-                location.position.latitude, location.position.longitude
-            )
-            if (distance < shortestDistance) {
-                shortestDistance = distance
-                closestLocation = location
+        // Sort locations by distance if this is the first click
+        if (currentSnowIndex == -1) {
+            snowLocations.sortBy { location ->
+                calculateDistance(
+                    madisonLocation.latitude, madisonLocation.longitude,
+                    location.position.latitude, location.position.longitude
+                )
             }
         }
 
-        closestLocation?.let { location ->
-            // Convert distance to miles
-            val distanceInMiles = (shortestDistance * 0.621371).roundToInt()
+        // Move to next location
+        currentSnowIndex++
+        val location = snowLocations[currentSnowIndex]
 
-            // Animate camera to location
-            mMap.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(location.position, 8f),
-                1500,  // 1.5 seconds
-                null
-            )
+        // Reset previous highlighted marker
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
 
-            // Show distance and location info
-            showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
-        }
+        // Highlight current marker
+        location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
+        currentHighlightedMarker = location.marker
+
+        // Calculate distance
+        val distance = calculateDistance(
+            madisonLocation.latitude, madisonLocation.longitude,
+            location.position.latitude, location.position.longitude
+        )
+        val distanceInMiles = (distance * 0.621371).roundToInt()
+
+        // Animate camera
+        mMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(location.position, 8f),
+            1500,
+            null
+        )
+
+        // Show distance and location info
+        showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -111,7 +156,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 sin(lonDistance / 2) * sin(lonDistance / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
-        return R * c  // Distance in kilometers
+        return R * c
     }
 
     private fun showSnackbar(message: String) {
@@ -121,7 +166,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         params.bottomMargin = resources.getDimensionPixelSize(R.dimen.snackbar_margin_bottom)
         snackbarView.layoutParams = params
 
-        // Center the text
         val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         textView.textAlignment = View.TEXT_ALIGNMENT_CENTER
         textView.gravity = Gravity.CENTER_HORIZONTAL
@@ -132,15 +176,48 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Set default view to show most of North America
         val northAmerica = LatLngBounds(
-            LatLng(20.0, -130.0),  // SW bounds
-            LatLng(60.0, -60.0)   // NE bounds
+            LatLng(20.0, -130.0),
+            LatLng(60.0, -60.0)
         )
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(northAmerica, 100))
 
-        // Add custom marker for user location in Madison
-        showUserLocation()
+        // Enable location features if permission is granted
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED) {
+
+            // This will show the button but not update the blue dot
+            mMap.setLocationSource(object : LocationSource {
+                override fun activate(listener: LocationSource.OnLocationChangedListener) {
+                    // Don't send any location updates
+                }
+                override fun deactivate() {
+                    // Nothing to deactivate
+                }
+            })
+
+            mMap.isMyLocationEnabled = true
+
+            // Add location button click listener to center on Madison
+            mMap.setOnMyLocationButtonClickListener {
+                mMap.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(madisonLocation, 10f),
+                    1000,
+                    null
+                )
+                true
+            }
+        }
+
+        // Customize map UI settings
+        mMap.uiSettings.apply {
+            isZoomControlsEnabled = true
+            isCompassEnabled = true
+        }
+
+        createUserLocationMarker()
         fetchSnowLocations()
     }
 
@@ -197,6 +274,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Enable location layer after permission is granted
+                    mMap.isMyLocationEnabled = true
                     showUserLocation()
                 } else {
                     showSnackbar("Location permission denied. Using default location: Madison, WI")
@@ -208,14 +287,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun fetchSnowLocations() {
         weatherScope.launch {
             try {
-                // Clear previous snow locations
                 snowLocations.clear()
+                currentSnowIndex = -1
+                currentHighlightedMarker = null
 
                 val regions = listOf(
-                    Pair(45.0, -100.0),  // Central North America
-                    Pair(45.0, -80.0),   // Eastern North America
-                    Pair(45.0, -120.0),  // Western North America
-                    Pair(60.0, -100.0)   // Northern regions
+                    Pair(45.0, -100.0),
+                    Pair(45.0, -80.0),
+                    Pair(45.0, -120.0),
+                    Pair(60.0, -100.0)
                 )
 
                 var totalSnowLocations = 0
@@ -223,14 +303,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 for (region in regions) {
                     val url = URL("https://api.openweathermap.org/data/2.5/find?" +
                             "lat=${region.first}&lon=${region.second}" +
-                            "&cnt=50" +  // Maximum cities per request
+                            "&cnt=50" +
                             "&appid=$API_KEY")
 
                     val connection = url.openConnection() as HttpURLConnection
                     connection.requestMethod = "GET"
 
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
-
                     val jsonResponse = JSONObject(response)
                     val list = jsonResponse.getJSONArray("list")
 
@@ -247,15 +326,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 val lon = coord.getDouble("lon")
                                 val name = item.getString("name")
                                 val desc = weather.getString("description")
-
                                 val position = LatLng(lat, lon)
-                                mMap.addMarker(MarkerOptions()
+
+                                val marker = mMap.addMarker(MarkerOptions()
                                     .position(position)
                                     .title("$name")
-                                    .snippet("Condition: $desc"))
+                                    .snippet("Condition: $desc")
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)))
 
-                                // Store snow location
-                                snowLocations.add(SnowLocation(position, name, desc))
+                                snowLocations.add(SnowLocation(position, name, desc, marker))
                             }
                         }
                     }
