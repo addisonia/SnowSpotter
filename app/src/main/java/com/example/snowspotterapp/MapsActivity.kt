@@ -49,6 +49,9 @@ import kotlin.math.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ktx.database
+import com.google.firebase.database.ktx.getValue
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -61,6 +64,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val TAG = "MapsActivity"
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var database: DatabaseReference
 
     // Madison, WI coordinates
     private val madisonLocation = LatLng(43.0731, -89.4012)
@@ -98,6 +102,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // Initialize Firebase Auth
         auth = Firebase.auth
+        // Initialize Firebase Database
+        database = Firebase.database.reference
+        // Check if user is signed in and load their preferences
+        auth.currentUser?.let { loadUserPreferences(it.uid) }
 
 
         //customize the title
@@ -315,6 +323,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 } else {
                     stopMusic()
                 }
+                saveUserPreferences()
             }
 
             // Show main menu centered
@@ -378,6 +387,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         currentTheme = "dark"
 
+        saveUserPreferences()
+
         showSnackbar("Dark theme applied")
     }
 
@@ -409,6 +420,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         currentTheme = "snow"
 
+        saveUserPreferences()
+
         showSnackbar("Snow theme applied")
     }
 
@@ -437,6 +450,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET))
 
         currentTheme = "blizzard"
+
+        saveUserPreferences()
 
         showSnackbar("Blizzard theme applied")
     }
@@ -1086,7 +1101,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         )
     }
 
-    // Add this new function for handling signed-in user options
     private fun showProfileOptions() {
         val popupMenu = PopupMenu(this, userButton)
         popupMenu.menu.add("Sign Out")
@@ -1094,6 +1108,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             when (item.title) {
                 "Sign Out" -> {
                     auth.signOut()
+                    // Reset to defaults
+                    applySnowTheme()
+                    isMusicEnabled = true
+                    startMusic()
                     showSnackbar("Signed out successfully")
                     true
                 }
@@ -1101,6 +1119,51 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
         popupMenu.show()
+    }
+
+    private fun saveUserPreferences() {
+        auth.currentUser?.let { user ->
+            val preferences = UserPreferences(
+                theme = currentTheme,
+                musicEnabled = isMusicEnabled,
+                basemap = "default"
+            )
+
+            database.child("users").child(user.uid).child("preferences")
+                .setValue(preferences)
+                .addOnSuccessListener {
+                    showSnackbar("Preferences saved")
+                }
+                .addOnFailureListener { e ->
+                    showSnackbar("Failed to save preferences: ${e.message}")
+                }
+        }
+    }
+
+    private fun loadUserPreferences(userId: String) {
+        database.child("users").child(userId).child("preferences")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                snapshot.getValue(UserPreferences::class.java)?.let { prefs ->
+                    // Apply theme
+                    when (prefs.theme) {
+                        "dark" -> applyDarkTheme()
+                        "blizzard" -> applyBlizzardTheme()
+                        else -> applySnowTheme()
+                    }
+
+                    // Apply music setting
+                    isMusicEnabled = prefs.musicEnabled
+                    if (isMusicEnabled) {
+                        startMusic()
+                    } else {
+                        stopMusic()
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                showSnackbar("Failed to load preferences: ${e.message}")
+            }
     }
 
 
