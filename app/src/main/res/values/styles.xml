@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SwitchTheme" parent="Theme.AppCompat.Light">
+        <!-- Track color when the switch is turned off -->
+        <item name="colorSwitchThumbNormal">@android:color/white</item>
+        <item name="android:colorForeground">#CCCCCC</item>  <!-- Gray color for the track when off -->
+    </style>
+</resources>

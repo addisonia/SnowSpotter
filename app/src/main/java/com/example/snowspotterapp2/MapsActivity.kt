@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -32,6 +33,8 @@ import com.google.android.material.snackbar.Snackbar
 import com.example.snowspotterapp2.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.LocationSource
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.gms.maps.model.MapStyleOptions
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.lang.Math.pow
@@ -74,6 +77,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
+    private var isMusicEnabled = true  // Default to true since music starts enabled
+
+
+    private var currentTheme = "snow"  // Default theme
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,7 +111,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             )
             popupWindow.elevation = 10f
 
-            // Pre-create submenus
+            // Modify each PopupWindow creation to add these lines:
+            popupWindow.setBackgroundDrawable(null)  // Remove default background
+
+            // Pre-create both submenus
             val themeSubmenuView = layoutInflater.inflate(R.layout.theme_submenu, null)
             val themeSubmenuWindow = PopupWindow(
                 themeSubmenuView,
@@ -113,13 +123,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 true
             )
             themeSubmenuWindow.elevation = 10f
-
-            // Get content containers
-            val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
-            val themeSubmenuContent = themeSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
-
-            // Initially set the submenu content to invisible
-            themeSubmenuContent.alpha = 0f
+            themeSubmenuWindow.setBackgroundDrawable(null)
 
             val basemapSubmenuView = layoutInflater.inflate(R.layout.basemap_submenu, null)
             val basemapSubmenuWindow = PopupWindow(
@@ -129,43 +133,104 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 true
             )
             basemapSubmenuWindow.elevation = 10f
+            basemapSubmenuWindow.setBackgroundDrawable(null)
 
+            // Get content containers and ensure visibility
+            val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
+            mainMenuContent.apply {
+                visibility = View.VISIBLE
+                for (i in 0 until childCount) {
+                    val child = getChildAt(i)
+                    if (child is TextView) {
+                        child.setTextColor(Color.BLACK)
+                    } else if (child is LinearLayout) {
+                        for (j in 0 until child.childCount) {
+                            val nestedChild = child.getChildAt(j)
+                            if (nestedChild is TextView) {
+                                nestedChild.setTextColor(Color.BLACK)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Set up theme submenu content
+            val themeSubmenuContent = themeSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
+            themeSubmenuContent.apply {
+                visibility = View.VISIBLE
+                for (i in 0 until childCount) {
+                    val child = getChildAt(i)
+                    if (child is TextView) {
+                        child.setTextColor(Color.BLACK)
+                    }
+                }
+                alpha = 0f
+            }
+
+            // Set up basemap submenu content
             val basemapSubmenuContent = basemapSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
-            basemapSubmenuContent.alpha = 0f
-
-            // Set up theme submenu listeners
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
-                showSnackbar("Theme 1 selected")
-                themeSubmenuWindow.dismiss()
-            }
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
-                showSnackbar("Theme 2 selected")
-                themeSubmenuWindow.dismiss()
-            }
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
-                showSnackbar("Theme 3 selected")
-                themeSubmenuWindow.dismiss()
+            basemapSubmenuContent.apply {
+                visibility = View.VISIBLE
+                for (i in 0 until childCount) {
+                    val child = getChildAt(i)
+                    if (child is TextView) {
+                        child.setTextColor(Color.BLACK)
+                    }
+                }
+                alpha = 0f
             }
 
-            // Set up basemap submenu listeners
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
-                showSnackbar("Basemap 1 selected")
-                basemapSubmenuWindow.dismiss()
+            // Theme submenu listeners
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption1).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    applyDarkTheme()
+                    themeSubmenuWindow.dismiss()
+                }
             }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
-                showSnackbar("Basemap 2 selected")
-                basemapSubmenuWindow.dismiss()
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption2).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    applySnowTheme()
+                    themeSubmenuWindow.dismiss()
+                }
             }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
-                showSnackbar("Basemap 3 selected")
-                basemapSubmenuWindow.dismiss()
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption3).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    applyBlizzardTheme()
+                    themeSubmenuWindow.dismiss()
+                }
             }
 
+            // Basemap submenu listeners
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    showSnackbar("Basemap 1 selected")
+                    basemapSubmenuWindow.dismiss()
+                }
+            }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    showSnackbar("Basemap 2 selected")
+                    basemapSubmenuWindow.dismiss()
+                }
+            }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).apply {
+                setTextColor(Color.BLACK)
+                setOnClickListener {
+                    showSnackbar("Basemap 3 selected")
+                    basemapSubmenuWindow.dismiss()
+                }
+            }
+
+            // Main menu option1 (Theme) click handler
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
                 val location = IntArray(2)
                 view.getLocationOnScreen(location)
 
-                // Show submenu window (without animation)
                 themeSubmenuWindow.showAtLocation(
                     view,
                     Gravity.NO_GRAVITY,
@@ -173,11 +238,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     location[1] - 500
                 )
 
-                // Animate main menu content out
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // Fade in and slide in submenu content
                     themeSubmenuContent.alpha = 1f
                     themeSubmenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
                 }, 50)
@@ -187,11 +250,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }, 300)
             }
 
+            // Main menu option2 (Basemap) click handler
             popupView.findViewById<LinearLayout>(R.id.option2Container).setOnClickListener {
                 val location = IntArray(2)
                 view.getLocationOnScreen(location)
 
-                // Show submenu window (without animation)
                 basemapSubmenuWindow.showAtLocation(
                     view,
                     Gravity.NO_GRAVITY,
@@ -199,11 +262,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     location[1] - 500
                 )
 
-                // Animate main menu content out
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
 
                 Handler(Looper.getMainLooper()).postDelayed({
-                    // Fade in and slide in submenu content
                     basemapSubmenuContent.alpha = 1f
                     basemapSubmenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
                 }, 50)
@@ -213,10 +274,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }, 300)
             }
 
-            // Handle music toggle
+            // Music toggle with state persistence
             val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
-            musicToggle.isChecked = true  // Set to ON by default
+            musicToggle.isChecked = isMusicEnabled
             musicToggle.setOnCheckedChangeListener { _, isChecked ->
+                isMusicEnabled = isChecked
                 if (isChecked) {
                     startMusic()
                 } else {
@@ -231,7 +293,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 view,
                 Gravity.NO_GRAVITY,
                 location[0] - 10,
-                location[1] - 515
+                location[1] - 500
             )
         }
 
@@ -243,7 +305,107 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         initializeMusic()
 
+
     }
+
+
+    private var overlay: View? = null
+
+    private fun applyDarkTheme() {
+        overlay = binding.themeOverlay
+        overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))  // More opaque dark overlay
+        overlay?.visibility = View.VISIBLE
+
+        // Add text color to the button
+        binding.findSnowButton.setTextColor(Color.WHITE)
+
+        // Darker UI elements
+        binding.findSnowButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
+        binding.settingsButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
+        binding.userButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
+
+        // Darker circle
+        userCircle?.strokeColor = Color.argb(255, 100, 100, 100)  // Darker grey outline
+        userCircle?.fillColor = Color.argb(90, 50, 50, 50)      // Darker grey fill
+
+        // Darker card
+        binding.mapCardView.setCardBackgroundColor(Color.argb(255, 30, 30, 30))
+
+        // Update markers to darker colors
+        snowLocations.forEach { location ->
+            location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+        }
+        // Update highlighted marker if one is selected
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+
+        currentTheme = "dark"
+
+        showSnackbar("Dark theme applied")
+    }
+
+    private fun applySnowTheme() {
+        overlay?.visibility = View.GONE
+
+        // Add text color to the button
+        binding.findSnowButton.setTextColor(Color.WHITE)
+
+        // Reset UI elements to default blue
+        val defaultBlue = getColor(com.google.android.material.R.color.design_default_color_primary)
+        binding.findSnowButton.setBackgroundColor(defaultBlue)
+        binding.settingsButton.setBackgroundColor(defaultBlue)
+        binding.userButton.setBackgroundColor(defaultBlue)
+
+        // Original blue/cyan circle
+        userCircle?.strokeColor = Color.argb(255, 0, 150, 255)    // Blue outline
+        userCircle?.fillColor = Color.argb(70, 0, 255, 255)       // Cyan fill
+
+        // Reset card
+        binding.mapCardView.setCardBackgroundColor(Color.WHITE)
+
+        // Update markers to blue colors
+        snowLocations.forEach { location ->
+            location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+        }
+        // Update highlighted marker if one is selected
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+
+        currentTheme = "snow"
+
+        showSnackbar("Snow theme applied")
+    }
+
+    private fun applyBlizzardTheme() {
+        overlay = binding.themeOverlay
+        overlay?.setBackgroundColor(Color.argb(100, 255, 255, 255))  // More visible white overlay
+        overlay?.visibility = View.VISIBLE
+
+        // Lighter UI elements
+        binding.findSnowButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
+        binding.settingsButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
+        binding.userButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
+
+        // White/blue circle
+        userCircle?.strokeColor = Color.argb(255, 255, 255, 255)  // White outline
+        userCircle?.fillColor = Color.argb(90, 220, 240, 255)     // Light blue-white fill
+
+        // Lighter card
+        binding.mapCardView.setCardBackgroundColor(Color.argb(255, 240, 245, 255))
+
+        // Update markers to white/light blue colors
+        snowLocations.forEach { location ->
+            location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
+        }
+        // Update highlighted marker if one is selected
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET))
+
+        currentTheme = "blizzard"
+
+        showSnackbar("Blizzard theme applied")
+    }
+
+
+
+
 
     private fun setupThemeSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
         submenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
@@ -325,8 +487,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         currentSnowIndex++
         val location = snowLocations[currentSnowIndex]
 
-        // Reset previous highlighted marker
-        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        // Reset previous highlighted marker to theme
+        val defaultColor = when (currentTheme) {
+            "dark" -> BitmapDescriptorFactory.HUE_BLUE
+            "snow" -> BitmapDescriptorFactory.HUE_BLUE
+            else -> BitmapDescriptorFactory.HUE_CYAN
+        }
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(defaultColor))
 
         // Highlight current marker
         location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
@@ -345,6 +512,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             1500,
             null
         )
+
+
+        // Set new highlighted marker color based on current theme
+        val highlightColor = when (currentTheme) {
+            "dark" -> BitmapDescriptorFactory.HUE_YELLOW
+            "snow" -> BitmapDescriptorFactory.HUE_AZURE
+            else -> BitmapDescriptorFactory.HUE_VIOLET
+        }
+        location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(highlightColor))
+        currentHighlightedMarker = location.marker
+
 
         // Show distance and location info
         showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
@@ -387,22 +565,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(northAmerica, 100))
 
         // Enable location features if permission is granted
+        enableMyLocation()  // Add this new function call
+
+        // Customize map UI settings
+        mMap.uiSettings.apply {
+            isZoomControlsEnabled = true
+            isCompassEnabled = true
+            isMyLocationButtonEnabled = true  // Make sure this is set to true
+        }
+
+        createUserLocationMarker()
+        fetchSnowLocations()
+    }
+
+
+    private fun enableMyLocation() {
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION  // Changed from COARSE to FINE
             ) == PackageManager.PERMISSION_GRANTED) {
 
-            // This will show the button but not update the blue dot
-            mMap.setLocationSource(object : LocationSource {
-                override fun activate(listener: LocationSource.OnLocationChangedListener) {
-                    // Don't send any location updates
-                }
-                override fun deactivate() {
-                    // Nothing to deactivate
-                }
-            })
-
             mMap.isMyLocationEnabled = true
+            mMap.uiSettings.isMyLocationButtonEnabled = true
 
             // Add location button click listener to center on Madison
             mMap.setOnMyLocationButtonClickListener {
@@ -413,16 +597,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 )
                 true
             }
+        } else {
+            // Request the permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,  // Add FINE location
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
         }
-
-        // Customize map UI settings
-        mMap.uiSettings.apply {
-            isZoomControlsEnabled = true
-            isCompassEnabled = true
-        }
-
-        createUserLocationMarker()
-        fetchSnowLocations()
     }
 
     private fun showUserLocation() {
@@ -478,9 +663,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // Enable location layer after permission is granted
-                    mMap.isMyLocationEnabled = true
-                    showUserLocation()
+                    enableMyLocation()
                 } else {
                     showSnackbar("Location permission denied. Using default location: Madison, WI")
                 }
@@ -536,7 +719,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .position(position)
                                     .title("$name")
                                     .snippet("Condition: $desc")
-                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)))
+                                    .icon(BitmapDescriptorFactory.defaultMarker(
+                                        when (currentTheme) {
+                                            "dark" -> BitmapDescriptorFactory.HUE_BLUE                                    "snow" -> BitmapDescriptorFactory.HUE_BLUE
+                                            else -> BitmapDescriptorFactory.HUE_CYAN
+                                        }
+                                    )))
 
                                 snowLocations.add(SnowLocation(position, name, desc, marker))
                             }
@@ -570,35 +758,34 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     //Music
     private fun initializeMusic() {
         mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
-        mediaPlayer?.isLooping = true  // Makes the music loop continuously
-        mediaPlayer?.setVolume(1.0f, 1.0f)  // Set volume to 50%
+        mediaPlayer?.isLooping = true
+        mediaPlayer?.setVolume(1.0f, 1.0f)
 
-        // Get song duration in milliseconds
         val songDuration = mediaPlayer?.duration ?: 0
 
-        // Start a periodic check to handle fade out before loop
         Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
             override fun run() {
                 mediaPlayer?.let { player ->
                     val currentPosition = player.currentPosition
-                    if (currentPosition >= songDuration - 5000) {  // Last 5 seconds
+                    if (currentPosition >= songDuration - 5000) {
                         fadeOutMusic()
                     }
-                    // Reset volume when song loops
-                    if (currentPosition < 100) {  // Near the start
+                    if (currentPosition < 100) {
                         player.setVolume(1.0f, 1.0f)
                     }
                 }
-                Handler(Looper.getMainLooper()).postDelayed(this, 1000)  // Check every second
+                Handler(Looper.getMainLooper()).postDelayed(this, 1000)
             }
         }, 1000)
 
-        //start playing by default
-        startMusic()
+        // Only start music if it's enabled
+        if (isMusicEnabled) {
+            startMusic()
+        }
     }
 
     private fun startMusic() {
-        if (!isMusicPlaying) {
+        if (!isMusicPlaying && isMusicEnabled) {  // Check if music is enabled
             mediaPlayer?.start()
             isMusicPlaying = true
         }

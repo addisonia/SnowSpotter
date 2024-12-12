@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Theme 1"
+            android:text="Dark Theme"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Theme 2"
+            android:text="Snow Theme (default)"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>
@@ -38,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Theme 3"
+            android:text="Blizzard Theme"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>
