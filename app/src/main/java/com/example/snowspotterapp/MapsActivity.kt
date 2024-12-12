@@ -369,102 +369,91 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var overlay: View? = null
 
-    private fun applyDarkTheme() {
+    private fun applyDarkTheme(showMessage: Boolean = true) {
         overlay = binding.themeOverlay
-        overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))  // More opaque dark overlay
+        overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))
         overlay?.visibility = View.VISIBLE
 
-        // Add text color to the button
         binding.findSnowButton.setTextColor(Color.WHITE)
 
-        // Darker UI elements
         binding.findSnowButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
         binding.settingsButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
         binding.userButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
 
-        // Darker circle
-        userCircle?.strokeColor = Color.argb(255, 100, 100, 100)  // Darker grey outline
-        userCircle?.fillColor = Color.argb(90, 50, 50, 50)      // Darker grey fill
+        userCircle?.strokeColor = Color.argb(255, 100, 100, 100)
+        userCircle?.fillColor = Color.argb(90, 50, 50, 50)
 
-        // Darker card
         binding.mapCardView.setCardBackgroundColor(Color.argb(255, 30, 30, 30))
 
-        // Update markers to darker colors
         snowLocations.forEach { location ->
             location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
         }
-        // Update highlighted marker if one is selected
         currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
 
         currentTheme = "dark"
 
         saveUserPreferences()
 
-        showSnackbar("Dark theme applied")
+        if (showMessage) {
+            showSnackbar("Dark theme applied")
+        }
     }
 
-    private fun applySnowTheme() {
+    private fun applySnowTheme(showMessage: Boolean = true) {
         overlay?.visibility = View.GONE
 
-        // Add text color to the button
         binding.findSnowButton.setTextColor(Color.WHITE)
 
-        // Use the default color from the theme - this will match the initial light purple
         val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
         binding.findSnowButton.setBackgroundColor(defaultColor)
         binding.settingsButton.setBackgroundColor(defaultColor)
         binding.userButton.setBackgroundColor(defaultColor)
 
-        // Original blue/cyan circle
-        userCircle?.strokeColor = Color.argb(255, 0, 150, 255)    // Blue outline
-        userCircle?.fillColor = Color.argb(70, 0, 255, 255)       // Cyan fill
+        userCircle?.strokeColor = Color.argb(255, 0, 150, 255)
+        userCircle?.fillColor = Color.argb(70, 0, 255, 255)
 
-        // Reset card
         binding.mapCardView.setCardBackgroundColor(Color.WHITE)
 
-        // Update markers to blue colors
         snowLocations.forEach { location ->
             location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
         }
-        // Update highlighted marker if one is selected
         currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
 
         currentTheme = "snow"
 
         saveUserPreferences()
 
-        showSnackbar("Snow theme applied")
+        if (showMessage) {
+            showSnackbar("Snow theme applied")
+        }
     }
 
-    private fun applyBlizzardTheme() {
+    private fun applyBlizzardTheme(showMessage: Boolean = true) {
         overlay = binding.themeOverlay
-        overlay?.setBackgroundColor(Color.argb(100, 255, 255, 255))  // More visible white overlay
+        overlay?.setBackgroundColor(Color.argb(100, 255, 255, 255))
         overlay?.visibility = View.VISIBLE
 
-        // Lighter UI elements
         binding.findSnowButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
         binding.settingsButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
         binding.userButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
 
-        // White/blue circle
-        userCircle?.strokeColor = Color.argb(255, 255, 255, 255)  // White outline
-        userCircle?.fillColor = Color.argb(90, 220, 240, 255)     // Light blue-white fill
+        userCircle?.strokeColor = Color.argb(255, 255, 255, 255)
+        userCircle?.fillColor = Color.argb(90, 220, 240, 255)
 
-        // Lighter card
         binding.mapCardView.setCardBackgroundColor(Color.argb(255, 240, 245, 255))
 
-        // Update markers to white/light blue colors
         snowLocations.forEach { location ->
             location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
         }
-        // Update highlighted marker if one is selected
         currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET))
 
         currentTheme = "blizzard"
 
         saveUserPreferences()
 
-        showSnackbar("Blizzard theme applied")
+        if (showMessage) {
+            showSnackbar("Blizzard theme applied")
+        }
     }
 
 
@@ -617,6 +606,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun fetchSnowLocations() {
         weatherScope.launch {
             try {
+                // Show initial searching message
+                withContext(Dispatchers.Main) {
+                    showSnackbar("Searching for snow...")
+                }
+
                 snowLocations.clear()
                 currentSnowIndex = -1
                 currentHighlightedMarker = null
@@ -703,11 +697,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                                     )))
 
                                                 snowLocations.add(SnowLocation(position, name, desc, marker))
-
-                                                // Show ongoing progress
-                                                if (totalSnowLocations % 5 == 0) {
-                                                    showSnackbar("Found $totalSnowLocations snow locations so far...")
-                                                }
                                             }
                                         }
                                     }
@@ -1156,9 +1145,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             database.child("users").child(user.uid).child("preferences")
                 .setValue(preferences)
-                .addOnSuccessListener {
-                    showSnackbar("Preferences saved")
-                }
+//                .addOnSuccessListener {
+//                    showSnackbar("Preferences saved")
+//                }
                 .addOnFailureListener { e ->
                     showSnackbar("Failed to save preferences: ${e.message}")
                 }
@@ -1171,11 +1160,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .addOnSuccessListener { snapshot ->
                 val prefs = snapshot.getValue(UserPreferences::class.java)
                 if (prefs != null) {
-                    // Apply theme
+                    // Apply theme without showing message
                     when (prefs.theme) {
-                        "dark" -> applyDarkTheme()
-                        "blizzard" -> applyBlizzardTheme()
-                        else -> applySnowTheme()
+                        "dark" -> applyDarkTheme(false)
+                        "blizzard" -> applyBlizzardTheme(false)
+                        else -> applySnowTheme(false)
                     }
 
                     // Apply music setting
@@ -1188,13 +1177,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     preferencesLoaded = true
                 } else {
-                    // If no preferences found, apply defaults
                     applyDefaultSettings()
                 }
             }
             .addOnFailureListener { e ->
                 showSnackbar("Failed to load preferences: ${e.message}")
-                // Apply defaults on failure
                 applyDefaultSettings()
             }
     }
