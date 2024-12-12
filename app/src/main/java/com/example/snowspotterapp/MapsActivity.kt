@@ -8,6 +8,7 @@ import android.location.*
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
@@ -121,12 +122,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         textView.text = "SnowSpotter"
         textView.textSize = 20f  // Adjust size as needed
         textView.setTypeface(null, Typeface.BOLD)  // Make it bold
+
         val layoutParams = ActionBar.LayoutParams(
             ActionBar.LayoutParams.WRAP_CONTENT,
             ActionBar.LayoutParams.WRAP_CONTENT
         )
         layoutParams.gravity = Gravity.CENTER
         supportActionBar?.setCustomView(textView, layoutParams)
+
+
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -369,38 +373,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var overlay: View? = null
 
-    private fun applyDarkTheme(showMessage: Boolean = true) {
-        overlay = binding.themeOverlay
-        overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))
-        overlay?.visibility = View.VISIBLE
-
-        binding.findSnowButton.setTextColor(Color.WHITE)
-
-        binding.findSnowButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
-        binding.settingsButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
-        binding.userButton.setBackgroundColor(Color.argb(255, 40, 40, 40))
-
-        userCircle?.strokeColor = Color.argb(255, 100, 100, 100)
-        userCircle?.fillColor = Color.argb(90, 50, 50, 50)
-
-        binding.mapCardView.setCardBackgroundColor(Color.argb(255, 30, 30, 30))
-
-        snowLocations.forEach { location ->
-            location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-        }
-        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
-
-        currentTheme = "dark"
-
-        saveUserPreferences()
-
-        if (showMessage) {
-            showSnackbar("Dark theme applied")
-        }
+    //function to update title color when needed:
+    private fun updateTitleTextColor() {
+        val titleTextView = supportActionBar?.customView as? TextView
+        titleTextView?.setTextColor(Color.parseColor("#c2c4c4"))
     }
+
 
     private fun applySnowTheme(showMessage: Boolean = true) {
         overlay?.visibility = View.GONE
+
+        // Set new background colors with updated snow theme color
+        binding.root.setBackgroundColor(Color.parseColor("#354347"))
+        supportActionBar?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#354347")))
+
+        updateTitleTextColor()
 
         binding.findSnowButton.setTextColor(Color.WHITE)
 
@@ -428,19 +415,68 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun applyBlizzardTheme(showMessage: Boolean = true) {
+    private fun applyDarkTheme(showMessage: Boolean = true) {
         overlay = binding.themeOverlay
-        overlay?.setBackgroundColor(Color.argb(100, 255, 255, 255))
+        overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))
         overlay?.visibility = View.VISIBLE
 
-        binding.findSnowButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
-        binding.settingsButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
-        binding.userButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
+        // Pure black for both background and title
+        val darkBackground = Color.BLACK
+        val darkUIElements = Color.argb(255, 40, 40, 40)  // Keep buttons slightly lighter
+
+        binding.root.setBackgroundColor(darkBackground)
+        supportActionBar?.setBackgroundDrawable(ColorDrawable(darkBackground))
+
+        updateTitleTextColor()
+
+        binding.findSnowButton.setTextColor(Color.WHITE)
+
+        binding.findSnowButton.setBackgroundColor(darkUIElements)
+        binding.settingsButton.setBackgroundColor(darkUIElements)
+        binding.userButton.setBackgroundColor(darkUIElements)
+
+        userCircle?.strokeColor = Color.argb(255, 100, 100, 100)
+        userCircle?.fillColor = Color.argb(90, 50, 50, 50)
+
+        binding.mapCardView.setCardBackgroundColor(Color.argb(255, 30, 30, 30))
+
+        snowLocations.forEach { location ->
+            location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+        }
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+
+        currentTheme = "dark"
+
+        saveUserPreferences()
+
+        if (showMessage) {
+            showSnackbar("Dark theme applied")
+        }
+    }
+
+    private fun applyBlizzardTheme(showMessage: Boolean = true) {
+        overlay = binding.themeOverlay
+        overlay?.setBackgroundColor(Color.argb(255, 240, 245, 255))
+        overlay?.visibility = View.VISIBLE
+
+        // Keep title banner's blue-white, but make background pure white
+        val blizzardBanner = Color.argb(255, 240, 245, 255)  // Light blue-white for banner
+        val blizzardBackground = Color.argb(255, 240, 245, 255)
+        val blizzardUIElements = Color.argb(255, 200, 220, 255)  // Slightly darker for buttons
+
+        binding.root.setBackgroundColor(blizzardBackground)
+        supportActionBar?.setBackgroundDrawable(ColorDrawable(blizzardBanner))
+
+        updateTitleTextColor()
+
+        binding.findSnowButton.setBackgroundColor(blizzardUIElements)
+        binding.settingsButton.setBackgroundColor(blizzardUIElements)
+        binding.userButton.setBackgroundColor(blizzardUIElements)
 
         userCircle?.strokeColor = Color.argb(255, 255, 255, 255)
         userCircle?.fillColor = Color.argb(90, 220, 240, 255)
 
-        binding.mapCardView.setCardBackgroundColor(Color.argb(255, 240, 245, 255))
+        binding.mapCardView.setCardBackgroundColor(blizzardBackground)
 
         snowLocations.forEach { location ->
             location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
