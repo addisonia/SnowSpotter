@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +23,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.PopupWindow
 import android.widget.Switch
+import androidx.appcompat.app.ActionBar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -69,7 +71,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     )
 
     private var userCircle: Circle? = null
-    private val BASE_CIRCLE_RADIUS = 25000.0 // 15km base radius
+    private val BASE_CIRCLE_RADIUS = 10000.0
 
     private lateinit var settingsButton: MaterialButton
     private lateinit var userButton: MaterialButton
@@ -85,6 +87,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //customize the title
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.setDisplayShowTitleEnabled(false)  // This removes the default title
+        supportActionBar?.setDisplayShowCustomEnabled(true)
+
+        // Center the title
+        val textView = TextView(this)
+        textView.text = "SnowSpotter"
+        textView.textSize = 20f  // Adjust size as needed
+        textView.setTypeface(null, Typeface.BOLD)  // Make it bold
+        val layoutParams = ActionBar.LayoutParams(
+            ActionBar.LayoutParams.WRAP_CONTENT,
+            ActionBar.LayoutParams.WRAP_CONTENT
+        )
+        layoutParams.gravity = Gravity.CENTER
+        supportActionBar?.setCustomView(textView, layoutParams)
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -110,9 +129,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 true
             )
             popupWindow.elevation = 10f
-
-            // Modify each PopupWindow creation to add these lines:
-            popupWindow.setBackgroundDrawable(null)  // Remove default background
+            popupWindow.setBackgroundDrawable(null)
 
             // Pre-create both submenus
             val themeSubmenuView = layoutInflater.inflate(R.layout.theme_submenu, null)
@@ -134,6 +151,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             )
             basemapSubmenuWindow.elevation = 10f
             basemapSubmenuWindow.setBackgroundDrawable(null)
+
+            // Measure views for proper positioning
+            popupView.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+
+            themeSubmenuView.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+
+            basemapSubmenuView.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
 
             // Get content containers and ensure visibility
             val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
@@ -226,6 +259,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
 
+            // Calculate position relative to map bottom
+            val mapBottom = binding.mapCardView.bottom + binding.mapCardView.top
+            val popupY = mapBottom - popupView.measuredHeight + 20
+
             // Main menu option1 (Theme) click handler
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
                 val location = IntArray(2)
@@ -235,7 +272,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     view,
                     Gravity.NO_GRAVITY,
                     location[0] - 10,
-                    location[1] - 500
+                    popupY
                 )
 
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
@@ -259,7 +296,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     view,
                     Gravity.NO_GRAVITY,
                     location[0] - 10,
-                    location[1] - 500
+                    popupY
                 )
 
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
@@ -286,14 +323,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
 
-            // Show main menu
+            // Show main menu with calculated position
             val location = IntArray(2)
             view.getLocationOnScreen(location)
             popupWindow.showAtLocation(
                 view,
                 Gravity.NO_GRAVITY,
                 location[0] - 10,
-                location[1] - 500
+                popupY
             )
         }
 
@@ -458,7 +495,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun updateCircleSize() {
         val zoom = mMap.cameraPosition.zoom.toDouble()
         // Adjust radius based on zoom level (exponentially)
-        val newRadius = BASE_CIRCLE_RADIUS * pow(0.75, zoom)
+        val newRadius = BASE_CIRCLE_RADIUS * pow(1.1, zoom)
         userCircle?.radius = newRadius
     }
 
