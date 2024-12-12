@@ -6,8 +6,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.*
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -19,6 +21,8 @@ import android.view.View
 import android.widget.TextView
 import android.view.Gravity
 import android.view.animation.AnimationUtils
+import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.PopupWindow
@@ -112,10 +116,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
+        // Apply snow theme immediately after binding
+        applySnowTheme()
+
         binding.findSnowButton.setOnClickListener {
             findNextSnowLocation()
         }
-
 
         settingsButton = binding.settingsButton
         userButton = binding.userButton
@@ -334,15 +340,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             )
         }
 
-
-        userButton.setOnClickListener {
-            // TODO: Implement user profile functionality
-            showSnackbar("User profile clicked!")
-        }
-
+        setupUserButton()
         initializeMusic()
-
-
     }
 
 
@@ -881,6 +880,113 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             isMusicPlaying = false
         }
     }
+
+
+    //User Login
+    private fun setupUserButton() {
+        userButton.setOnClickListener {
+            val popupView = layoutInflater.inflate(R.layout.login_popup, null)
+
+            // Get screen width and calculate popup width (2/3 of screen width)
+            val displayMetrics = resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val popupWidth = (screenWidth * 2) / 3
+
+            // Create popup window
+            val popupWindow = PopupWindow(
+                popupView,
+                popupWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            popupWindow.elevation = 10f
+            popupWindow.setBackgroundDrawable(null)
+
+            // Get references to views
+            val loginTitle = popupView.findViewById<TextView>(R.id.loginTitle)
+            val emailInput = popupView.findViewById<EditText>(R.id.emailInput)
+            val passwordInput = popupView.findViewById<EditText>(R.id.passwordInput)
+            val signInButton = popupView.findViewById<Button>(R.id.signInButton)
+            val createAccountText = popupView.findViewById<TextView>(R.id.createAccountText)
+
+            // Create drawable for rounded corners
+            val backgroundDrawable = GradientDrawable().apply {
+                cornerRadius = 14f * resources.displayMetrics.density  // 14dp corners
+                setStroke(1, Color.parseColor("#E0E0E0"))  // 1px stroke with light gray color
+            }
+
+            // Apply theme-specific colors
+            when (currentTheme) {
+                "dark" -> {
+                    backgroundDrawable.setColor(Color.argb(255, 40, 40, 40))
+                    popupView.background = backgroundDrawable
+                    loginTitle.setTextColor(Color.WHITE)
+                    emailInput.setTextColor(Color.WHITE)
+                    emailInput.setHintTextColor(Color.GRAY)
+                    emailInput.background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
+                    passwordInput.setTextColor(Color.WHITE)
+                    passwordInput.setHintTextColor(Color.GRAY)
+                    passwordInput.background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
+                    signInButton.setBackgroundColor(Color.argb(255, 80, 80, 80))
+                    createAccountText.setTextColor(Color.LTGRAY)
+                }
+                "blizzard" -> {
+                    backgroundDrawable.setColor(Color.argb(255, 240, 245, 255))
+                    popupView.background = backgroundDrawable
+                    signInButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
+                    emailInput.background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
+                    passwordInput.background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
+                }
+                else -> {
+                    // Snow theme (default)
+                    backgroundDrawable.setColor(Color.WHITE)
+                    popupView.background = backgroundDrawable
+                    val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+                    signInButton.setBackgroundColor(defaultColor)
+                    loginTitle.setTextColor(defaultColor)  // Added title color
+                    emailInput.setTextColor(defaultColor)
+                    emailInput.setHintTextColor(defaultColor)  // Added hint text color
+                    passwordInput.setTextColor(defaultColor)
+                    passwordInput.setHintTextColor(defaultColor)  // Added hint text color
+                }
+            }
+
+            // Setup click listeners
+            signInButton.setOnClickListener {
+                val email = emailInput.text.toString()
+                val password = passwordInput.text.toString()
+
+                if (email.isEmpty() || password.isEmpty()) {
+                    showSnackbar("Please fill in all fields")
+                    return@setOnClickListener
+                }
+
+                showSnackbar("Signing in...")
+                popupWindow.dismiss()
+            }
+
+            createAccountText.setOnClickListener {
+                showSnackbar("Create account clicked!")
+            }
+
+            // Center the popup in the screen
+            popupWindow.showAtLocation(
+                binding.root,
+                Gravity.CENTER,
+                0,
+                0
+            )
+
+            // Add fade in animation
+            popupView.alpha = 0f
+            popupView.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .start()
+        }
+    }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
