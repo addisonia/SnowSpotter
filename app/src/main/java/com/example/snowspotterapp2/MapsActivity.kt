@@ -127,21 +127,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         userButton = binding.userButton
 
         settingsButton.setOnClickListener { view ->
+            // Get screen width for popup sizing
+            val displayMetrics = resources.displayMetrics
+            val screenWidth = displayMetrics.widthPixels
+            val popupWidth = (screenWidth * 2) / 3  // Match login popup width
+
             val popupView = layoutInflater.inflate(R.layout.settings_popup, null)
             val popupWindow = PopupWindow(
                 popupView,
-                250.dpToPx(this),
+                popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 true
             )
             popupWindow.elevation = 10f
             popupWindow.setBackgroundDrawable(null)
 
-            // Pre-create both submenus
+            // Pre-create both submenus with same width
             val themeSubmenuView = layoutInflater.inflate(R.layout.theme_submenu, null)
             val themeSubmenuWindow = PopupWindow(
                 themeSubmenuView,
-                250.dpToPx(this),
+                popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 true
             )
@@ -151,134 +156,112 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val basemapSubmenuView = layoutInflater.inflate(R.layout.basemap_submenu, null)
             val basemapSubmenuWindow = PopupWindow(
                 basemapSubmenuView,
-                250.dpToPx(this),
+                popupWidth,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 true
             )
             basemapSubmenuWindow.elevation = 10f
             basemapSubmenuWindow.setBackgroundDrawable(null)
 
-            // Measure views for proper positioning
-            popupView.measure(
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-            )
+            // Create rounded corner backgrounds
+            val mainBackground = GradientDrawable().apply {
+                cornerRadius = 14f * resources.displayMetrics.density
+                setStroke(1, Color.parseColor("#E0E0E0"))
+            }
 
-            themeSubmenuView.measure(
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-            )
+            val themeBackground = GradientDrawable().apply {
+                cornerRadius = 14f * resources.displayMetrics.density
+                setStroke(1, Color.parseColor("#E0E0E0"))
+            }
 
-            basemapSubmenuView.measure(
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-            )
+            val basemapBackground = GradientDrawable().apply {
+                cornerRadius = 14f * resources.displayMetrics.density
+                setStroke(1, Color.parseColor("#E0E0E0"))
+            }
 
-            // Get content containers and ensure visibility
-            val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
-            mainMenuContent.apply {
-                visibility = View.VISIBLE
-                for (i in 0 until childCount) {
-                    val child = getChildAt(i)
-                    if (child is TextView) {
-                        child.setTextColor(Color.BLACK)
-                    } else if (child is LinearLayout) {
-                        for (j in 0 until child.childCount) {
-                            val nestedChild = child.getChildAt(j)
-                            if (nestedChild is TextView) {
-                                nestedChild.setTextColor(Color.BLACK)
-                            }
-                        }
-                    }
+            // Apply theme colors
+            when (currentTheme) {
+                "dark" -> {
+                    mainBackground.setColor(Color.argb(255, 40, 40, 40))
+                    themeBackground.setColor(Color.argb(255, 40, 40, 40))
+                    basemapBackground.setColor(Color.argb(255, 40, 40, 40))
+                    setPopupTextColors(popupView, Color.WHITE)
+                    setPopupTextColors(themeSubmenuView, Color.WHITE)
+                    setPopupTextColors(basemapSubmenuView, Color.WHITE)
+                }
+                "blizzard" -> {
+                    val blizzardColor = Color.argb(255, 240, 245, 255)
+                    mainBackground.setColor(blizzardColor)
+                    themeBackground.setColor(blizzardColor)
+                    basemapBackground.setColor(blizzardColor)
+                }
+                else -> {
+                    // Snow theme
+                    mainBackground.setColor(Color.WHITE)
+                    themeBackground.setColor(Color.WHITE)
+                    basemapBackground.setColor(Color.WHITE)
+                    val snowThemeColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+                    setPopupTextColors(popupView, snowThemeColor)
+                    setPopupTextColors(themeSubmenuView, snowThemeColor)
+                    setPopupTextColors(basemapSubmenuView, snowThemeColor)
                 }
             }
 
-            // Set up theme submenu content
+            popupView.background = mainBackground
+            themeSubmenuView.background = themeBackground
+            basemapSubmenuView.background = basemapBackground
+
+            // Get content containers
+            val mainMenuContent = popupView.findViewById<LinearLayout>(R.id.menuContent)
             val themeSubmenuContent = themeSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
+            val basemapSubmenuContent = basemapSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
+
+            // Set initial visibility
+            mainMenuContent.visibility = View.VISIBLE
             themeSubmenuContent.apply {
                 visibility = View.VISIBLE
-                for (i in 0 until childCount) {
-                    val child = getChildAt(i)
-                    if (child is TextView) {
-                        child.setTextColor(Color.BLACK)
-                    }
-                }
                 alpha = 0f
             }
-
-            // Set up basemap submenu content
-            val basemapSubmenuContent = basemapSubmenuView.findViewById<LinearLayout>(R.id.submenuContent)
             basemapSubmenuContent.apply {
                 visibility = View.VISIBLE
-                for (i in 0 until childCount) {
-                    val child = getChildAt(i)
-                    if (child is TextView) {
-                        child.setTextColor(Color.BLACK)
-                    }
-                }
                 alpha = 0f
             }
 
             // Theme submenu listeners
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption1).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    applyDarkTheme()
-                    themeSubmenuWindow.dismiss()
-                }
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
+                applyDarkTheme()
+                themeSubmenuWindow.dismiss()
             }
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption2).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    applySnowTheme()
-                    themeSubmenuWindow.dismiss()
-                }
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
+                applySnowTheme()
+                themeSubmenuWindow.dismiss()
             }
-            themeSubmenuView.findViewById<TextView>(R.id.themeOption3).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    applyBlizzardTheme()
-                    themeSubmenuWindow.dismiss()
-                }
+            themeSubmenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
+                applyBlizzardTheme()
+                themeSubmenuWindow.dismiss()
             }
 
             // Basemap submenu listeners
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    showSnackbar("Basemap 1 selected")
-                    basemapSubmenuWindow.dismiss()
-                }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
+                showSnackbar("Basemap 1 selected")
+                basemapSubmenuWindow.dismiss()
             }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    showSnackbar("Basemap 2 selected")
-                    basemapSubmenuWindow.dismiss()
-                }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
+                showSnackbar("Basemap 2 selected")
+                basemapSubmenuWindow.dismiss()
             }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).apply {
-                setTextColor(Color.BLACK)
-                setOnClickListener {
-                    showSnackbar("Basemap 3 selected")
-                    basemapSubmenuWindow.dismiss()
-                }
+            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
+                showSnackbar("Basemap 3 selected")
+                basemapSubmenuWindow.dismiss()
             }
-
-            // Calculate position relative to map bottom
-            val mapBottom = binding.mapCardView.bottom + binding.mapCardView.top
-            val popupY = mapBottom - popupView.measuredHeight + 20
 
             // Main menu option1 (Theme) click handler
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
-                val location = IntArray(2)
-                view.getLocationOnScreen(location)
-
                 themeSubmenuWindow.showAtLocation(
-                    view,
-                    Gravity.NO_GRAVITY,
-                    location[0] - 10,
-                    popupY
+                    binding.root,
+                    Gravity.CENTER,
+                    0,
+                    0
                 )
 
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
@@ -295,14 +278,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             // Main menu option2 (Basemap) click handler
             popupView.findViewById<LinearLayout>(R.id.option2Container).setOnClickListener {
-                val location = IntArray(2)
-                view.getLocationOnScreen(location)
-
                 basemapSubmenuWindow.showAtLocation(
-                    view,
-                    Gravity.NO_GRAVITY,
-                    location[0] - 10,
-                    popupY
+                    binding.root,
+                    Gravity.CENTER,
+                    0,
+                    0
                 )
 
                 mainMenuContent.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_out_left))
@@ -317,7 +297,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }, 300)
             }
 
-            // Music toggle with state persistence
+            // Music toggle
             val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
             musicToggle.isChecked = isMusicEnabled
             musicToggle.setOnCheckedChangeListener { _, isChecked ->
@@ -329,21 +309,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
 
-            // Show main menu with calculated position
-            val location = IntArray(2)
-            view.getLocationOnScreen(location)
+            // Show main menu centered
             popupWindow.showAtLocation(
-                view,
-                Gravity.NO_GRAVITY,
-                location[0] - 10,
-                popupY
+                binding.root,
+                Gravity.CENTER,
+                0,
+                0
             )
         }
+
 
         setupUserButton()
         initializeMusic()
     }
 
+
+
+    // Helper function to set text colors recursively
+    private fun setPopupTextColors(view: View, color: Int) {
+        when (view) {
+            is ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    setPopupTextColors(view.getChildAt(i), color)
+                }
+            }
+            is TextView -> {
+                view.setTextColor(color)
+            }
+        }
+    }
 
     private var overlay: View? = null
 
