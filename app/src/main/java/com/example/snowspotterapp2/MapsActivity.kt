@@ -386,11 +386,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Add text color to the button
         binding.findSnowButton.setTextColor(Color.WHITE)
 
-        // Reset UI elements to default blue
-        val defaultBlue = getColor(com.google.android.material.R.color.design_default_color_primary)
-        binding.findSnowButton.setBackgroundColor(defaultBlue)
-        binding.settingsButton.setBackgroundColor(defaultBlue)
-        binding.userButton.setBackgroundColor(defaultBlue)
+        // Use the default color from the theme - this will match the initial light purple
+        val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+        binding.findSnowButton.setBackgroundColor(defaultColor)
+        binding.settingsButton.setBackgroundColor(defaultColor)
+        binding.userButton.setBackgroundColor(defaultColor)
 
         // Original blue/cyan circle
         userCircle?.strokeColor = Color.argb(255, 0, 150, 255)    // Blue outline
