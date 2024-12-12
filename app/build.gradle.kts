@@ -2,16 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
-//    id("com.google.gms.google-services")
+    id("com.google.gms.google-services")
+
 
 }
 
 android {
-    namespace = "com.example.snowspotterapp2"
+    namespace = "com.example.snowspotterapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.snowspotterapp2"
+        applicationId = "com.example.snowspotterapp"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -55,8 +56,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-
-//    implementation(platform(libs.firebase.bom))
-//    implementation(libs.firebase.analytics)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
 
 }

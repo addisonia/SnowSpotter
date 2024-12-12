@@ -1,4 +1,4 @@
-package com.example.snowspotterapp2
+package com.example.snowspotterapp
 
 import org.junit.Test
 

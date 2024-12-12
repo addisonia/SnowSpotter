@@ -1,4 +1,4 @@
-package com.example.snowspotterapp2
+package com.example.snowspotterapp
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

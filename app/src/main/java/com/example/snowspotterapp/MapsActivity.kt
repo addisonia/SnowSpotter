@@ -1,4 +1,4 @@
-package com.example.snowspotterapp2
+package com.example.snowspotterapp
 
 import android.Manifest
 import android.animation.ValueAnimator
@@ -8,7 +8,6 @@ import android.location.*
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import androidx.appcompat.app.AppCompatActivity
@@ -30,17 +29,14 @@ import android.widget.Switch
 import androidx.appcompat.app.ActionBar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.snowspotterapp.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
-import com.example.snowspotterapp2.databinding.ActivityMapsBinding
-import com.google.android.gms.maps.LocationSource
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.gms.maps.model.MapStyleOptions
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.lang.Math.pow
@@ -48,6 +44,12 @@ import java.net.URL
 import java.net.HttpURLConnection
 import java.util.Locale
 import kotlin.math.*
+
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -57,6 +59,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val weatherScope = CoroutineScope(Dispatchers.IO + Job())
     private val API_KEY = "6d05802c8dd306c4a02c96c9bf433ea2"
     private val TAG = "MapsActivity"
+
+    private lateinit var auth: FirebaseAuth
 
     // Madison, WI coordinates
     private val madisonLocation = LatLng(43.0731, -89.4012)
@@ -91,6 +95,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Firebase Auth
+        auth = Firebase.auth
+
 
         //customize the title
         supportActionBar?.setDisplayShowHomeEnabled(true)
@@ -437,21 +445,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
-    private fun setupThemeSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
-        submenuView.findViewById<TextView>(R.id.themeOption1).setOnClickListener {
-            showSnackbar("Theme 1 selected")
-            submenuWindow.dismiss()
-        }
-        submenuView.findViewById<TextView>(R.id.themeOption2).setOnClickListener {
-            showSnackbar("Theme 2 selected")
-            submenuWindow.dismiss()
-        }
-        submenuView.findViewById<TextView>(R.id.themeOption3).setOnClickListener {
-            showSnackbar("Theme 3 selected")
-            submenuWindow.dismiss()
-        }
-    }
-
     private fun setupBasemapSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
         submenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
             showSnackbar("Basemap 1 selected")
@@ -577,49 +570,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun showUserLocation() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED) {
-
-            // Remove previous marker if it exists
-            userMarker?.remove()
-
-            // Add marker at Madison location
-            userMarker = mMap.addMarker(
-                MarkerOptions()
-                    .position(madisonLocation)
-                    .title("Your Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-            )
-
-            // Show city name
-            val geocoder = Geocoder(this, Locale.getDefault())
-            try {
-                val addresses = geocoder.getFromLocation(
-                    madisonLocation.latitude,
-                    madisonLocation.longitude,
-                    1
-                )
-                addresses?.firstOrNull()?.let { address ->
-                    val cityName = address.locality ?: address.subAdminArea ?: address.adminArea
-                    cityName?.let { city ->
-                        showSnackbar("Located near: $city")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error getting location name", e)
-            }
-
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
-        }
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -876,108 +826,281 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-    //User Login
+
+
+
     private fun setupUserButton() {
         userButton.setOnClickListener {
-            val popupView = layoutInflater.inflate(R.layout.login_popup, null)
-
-            // Get screen width and calculate popup width (2/3 of screen width)
-            val displayMetrics = resources.displayMetrics
-            val screenWidth = displayMetrics.widthPixels
-            val popupWidth = (screenWidth * 2) / 3
-
-            // Create popup window
-            val popupWindow = PopupWindow(
-                popupView,
-                popupWidth,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                true
-            )
-            popupWindow.elevation = 10f
-            popupWindow.setBackgroundDrawable(null)
-
-            // Get references to views
-            val loginTitle = popupView.findViewById<TextView>(R.id.loginTitle)
-            val emailInput = popupView.findViewById<EditText>(R.id.emailInput)
-            val passwordInput = popupView.findViewById<EditText>(R.id.passwordInput)
-            val signInButton = popupView.findViewById<Button>(R.id.signInButton)
-            val createAccountText = popupView.findViewById<TextView>(R.id.createAccountText)
-
-            // Create drawable for rounded corners
-            val backgroundDrawable = GradientDrawable().apply {
-                cornerRadius = 14f * resources.displayMetrics.density  // 14dp corners
-                setStroke(1, Color.parseColor("#E0E0E0"))  // 1px stroke with light gray color
+            if (auth.currentUser != null) {
+                showProfileOptions()
+                return@setOnClickListener
             }
 
-            // Apply theme-specific colors
-            when (currentTheme) {
-                "dark" -> {
-                    backgroundDrawable.setColor(Color.argb(255, 40, 40, 40))
-                    popupView.background = backgroundDrawable
-                    loginTitle.setTextColor(Color.WHITE)
-                    emailInput.setTextColor(Color.WHITE)
-                    emailInput.setHintTextColor(Color.GRAY)
-                    emailInput.background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
-                    passwordInput.setTextColor(Color.WHITE)
-                    passwordInput.setHintTextColor(Color.GRAY)
-                    passwordInput.background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
-                    signInButton.setBackgroundColor(Color.argb(255, 80, 80, 80))
-                    createAccountText.setTextColor(Color.LTGRAY)
+            showLoginPopup()
+        }
+    }
+
+    private fun showLoginPopup() {
+        val popupView = layoutInflater.inflate(R.layout.login_popup, null)
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val popupWidth = (screenWidth * 2) / 3
+
+        val popupWindow = PopupWindow(
+            popupView,
+            popupWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(null)
+
+        // Create rounded corner background
+        val background = GradientDrawable().apply {
+            cornerRadius = 14f * resources.displayMetrics.density
+            setStroke(1, Color.parseColor("#E0E0E0"))
+        }
+
+        // Apply theme colors
+        when (currentTheme) {
+            "dark" -> {
+                background.setColor(Color.argb(255, 40, 40, 40))
+                setPopupTextColors(popupView, Color.WHITE)
+                popupView.findViewById<Button>(R.id.signInButton).setBackgroundColor(Color.argb(255, 80, 80, 80))
+                // Set EditText colors
+                popupView.findViewById<EditText>(R.id.emailInput).apply {
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                    background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
                 }
-                "blizzard" -> {
-                    backgroundDrawable.setColor(Color.argb(255, 240, 245, 255))
-                    popupView.background = backgroundDrawable
-                    signInButton.setBackgroundColor(Color.argb(255, 200, 220, 255))
-                    emailInput.background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
-                    passwordInput.background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
-                }
-                else -> {
-                    // Snow theme (default)
-                    backgroundDrawable.setColor(Color.WHITE)
-                    popupView.background = backgroundDrawable
-                    val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
-                    signInButton.setBackgroundColor(defaultColor)
-                    loginTitle.setTextColor(defaultColor)  // Added title color
-                    emailInput.setTextColor(defaultColor)
-                    emailInput.setHintTextColor(defaultColor)  // Added hint text color
-                    passwordInput.setTextColor(defaultColor)
-                    passwordInput.setHintTextColor(defaultColor)  // Added hint text color
+                popupView.findViewById<EditText>(R.id.passwordInput).apply {
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(Color.GRAY)
+                    background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
                 }
             }
+            "blizzard" -> {
+                background.setColor(Color.argb(255, 240, 245, 255))
+                popupView.findViewById<Button>(R.id.signInButton).setBackgroundColor(Color.argb(255, 200, 220, 255))
+                popupView.findViewById<EditText>(R.id.emailInput).background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
+                popupView.findViewById<EditText>(R.id.passwordInput).background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
+            }
+            else -> {
+                // Snow theme (default)
+                background.setColor(Color.WHITE)
+                val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+                setPopupTextColors(popupView, defaultColor)
 
-            // Setup click listeners
-            signInButton.setOnClickListener {
-                val email = emailInput.text.toString()
-                val password = passwordInput.text.toString()
+                // Update EditText hint colors
+                popupView.findViewById<EditText>(R.id.emailInput).setHintTextColor(defaultColor)
+                popupView.findViewById<EditText>(R.id.passwordInput).setHintTextColor(defaultColor)
 
-                if (email.isEmpty() || password.isEmpty()) {
+                // Update Button
+                popupView.findViewById<Button>(R.id.signInButton).apply {
+                    setBackgroundColor(defaultColor)
+                    setTextColor(Color.WHITE)  // Set text color to white
+                }
+            }
+        }
+
+        popupView.background = background
+
+        // Get references
+        val emailInput = popupView.findViewById<EditText>(R.id.emailInput)
+        val passwordInput = popupView.findViewById<EditText>(R.id.passwordInput)
+        val signInButton = popupView.findViewById<Button>(R.id.signInButton)
+        val createAccountText = popupView.findViewById<TextView>(R.id.createAccountText)
+
+        signInButton.setOnClickListener {
+            val email = emailInput.text.toString()
+            val password = passwordInput.text.toString()
+
+            if (email.isEmpty() || password.isEmpty()) {
+                showSnackbar("Please fill in all fields")
+                return@setOnClickListener
+            }
+
+            signInButton.isEnabled = false
+            signInButton.text = "Signing in..."
+
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        showSnackbar("Sign in successful!")
+                        popupWindow.dismiss()
+                    } else {
+                        showSnackbar("Sign in failed: ${task.exception?.message}")
+                        signInButton.isEnabled = true
+                        signInButton.text = "Sign In"
+                    }
+                }
+        }
+
+        createAccountText.setOnClickListener {
+            popupWindow.dismiss()
+            showCreateAccountPopup()
+        }
+
+        popupWindow.showAtLocation(
+            binding.root,
+            Gravity.CENTER,
+            0,
+            0
+        )
+    }
+
+    private fun showCreateAccountPopup() {
+        val popupView = layoutInflater.inflate(R.layout.create_account_popup, null)
+
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val popupWidth = (screenWidth * 2) / 3
+
+        val popupWindow = PopupWindow(
+            popupView,
+            popupWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(null)
+
+        // Create rounded corner background
+        val background = GradientDrawable().apply {
+            cornerRadius = 14f * resources.displayMetrics.density
+            setStroke(1, Color.parseColor("#E0E0E0"))
+        }
+
+        // Apply theme colors
+        when (currentTheme) {
+            "dark" -> {
+                background.setColor(Color.argb(255, 40, 40, 40))
+                setPopupTextColors(popupView, Color.WHITE)
+                popupView.findViewById<Button>(R.id.createAccountButton).setBackgroundColor(Color.argb(255, 80, 80, 80))
+                // Set EditText colors
+                val editTexts = listOf(
+                    popupView.findViewById<EditText>(R.id.newEmailInput),
+                    popupView.findViewById<EditText>(R.id.newPasswordInput),
+                    popupView.findViewById<EditText>(R.id.confirmPasswordInput)
+                )
+                editTexts.forEach { editText ->
+                    editText.apply {
+                        setTextColor(Color.WHITE)
+                        setHintTextColor(Color.GRAY)
+                        background.setColorFilter(Color.argb(255, 60, 60, 60), PorterDuff.Mode.SRC_ATOP)
+                    }
+                }
+            }
+            "blizzard" -> {
+                background.setColor(Color.argb(255, 240, 245, 255))
+                popupView.findViewById<Button>(R.id.createAccountButton).setBackgroundColor(Color.argb(255, 200, 220, 255))
+                val editTexts = listOf(
+                    popupView.findViewById<EditText>(R.id.newEmailInput),
+                    popupView.findViewById<EditText>(R.id.newPasswordInput),
+                    popupView.findViewById<EditText>(R.id.confirmPasswordInput)
+                )
+                editTexts.forEach { editText ->
+                    editText.background.setColorFilter(Color.argb(255, 230, 240, 255), PorterDuff.Mode.SRC_ATOP)
+                }
+            }
+            else -> {
+                // Snow theme (default)
+                background.setColor(Color.WHITE)
+                val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+                setPopupTextColors(popupView, defaultColor)
+
+                // Update EditText hint colors
+                val editTexts = listOf(
+                    popupView.findViewById<EditText>(R.id.newEmailInput),
+                    popupView.findViewById<EditText>(R.id.newPasswordInput),
+                    popupView.findViewById<EditText>(R.id.confirmPasswordInput)
+                )
+                editTexts.forEach { editText ->
+                    editText.setHintTextColor(defaultColor)
+                }
+
+                // Update Button
+                popupView.findViewById<Button>(R.id.createAccountButton).apply {
+                    setBackgroundColor(defaultColor)
+                    setTextColor(Color.WHITE)  // Set text color to white
+                }
+            }
+        }
+
+        popupView.background = background
+
+        // Get references
+        val emailInput = popupView.findViewById<EditText>(R.id.newEmailInput)
+        val passwordInput = popupView.findViewById<EditText>(R.id.newPasswordInput)
+        val confirmPasswordInput = popupView.findViewById<EditText>(R.id.confirmPasswordInput)
+        val createAccountButton = popupView.findViewById<Button>(R.id.createAccountButton)
+        val backToSignInText = popupView.findViewById<TextView>(R.id.backToSignInText)
+
+        createAccountButton.setOnClickListener {
+            val email = emailInput.text.toString()
+            val password = passwordInput.text.toString()
+            val confirmPassword = confirmPasswordInput.text.toString()
+
+            when {
+                email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
                     showSnackbar("Please fill in all fields")
                     return@setOnClickListener
                 }
-
-                showSnackbar("Signing in...")
-                popupWindow.dismiss()
+                password != confirmPassword -> {
+                    showSnackbar("Passwords do not match")
+                    return@setOnClickListener
+                }
+                password.length < 6 -> {
+                    showSnackbar("Password must be at least 6 characters")
+                    return@setOnClickListener
+                }
             }
 
-            createAccountText.setOnClickListener {
-                showSnackbar("Create account clicked!")
-            }
+            createAccountButton.isEnabled = false
+            createAccountButton.text = "Creating Account..."
 
-            // Center the popup in the screen
-            popupWindow.showAtLocation(
-                binding.root,
-                Gravity.CENTER,
-                0,
-                0
-            )
-
-            // Add fade in animation
-            popupView.alpha = 0f
-            popupView.animate()
-                .alpha(1f)
-                .setDuration(200)
-                .start()
+            auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        showSnackbar("Account created successfully!")
+                        popupWindow.dismiss()
+                    } else {
+                        showSnackbar("Account creation failed: ${task.exception?.message}")
+                        createAccountButton.isEnabled = true
+                        createAccountButton.text = "Create Account"
+                    }
+                }
         }
+
+        backToSignInText.setOnClickListener {
+            popupWindow.dismiss()
+            showLoginPopup()
+        }
+
+        popupWindow.showAtLocation(
+            binding.root,
+            Gravity.CENTER,
+            0,
+            0
+        )
+    }
+
+    // Add this new function for handling signed-in user options
+    private fun showProfileOptions() {
+        val popupMenu = PopupMenu(this, userButton)
+        popupMenu.menu.add("Sign Out")
+        popupMenu.setOnMenuItemClickListener { item ->
+            when (item.title) {
+                "Sign Out" -> {
+                    auth.signOut()
+                    showSnackbar("Signed out successfully")
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
     }
 
 
@@ -988,5 +1111,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mediaPlayer = null
         weatherScope.cancel()
     }
+
+
 
 }

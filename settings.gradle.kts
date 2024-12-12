@@ -17,6 +17,13 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+    versionCatalogs {
+        create("libs") {
+            // Add these lines
+            library("firebase-auth", "com.google.firebase:firebase-auth-ktx:22.3.1")
+            plugin("google-services", "com.google.gms.google-services").version("4.4.2")
+        }
+    }
 }
 
 rootProject.name = "SnowSpotterApp2"

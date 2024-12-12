@@ -12,7 +12,12 @@
           "package_name": "com.example.snowspotterapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "562751799215-b2ueoift3tvro45e95a36hfnrlvb5ue7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDEJ3uLwKzfTen4BDDsdoIytonJ7XCDan8"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "562751799215-b2ueoift3tvro45e95a36hfnrlvb5ue7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
