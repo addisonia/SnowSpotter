@@ -499,71 +499,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         userCircle?.radius = newRadius
     }
 
-    private fun findNextSnowLocation() {
-        if (snowLocations.isEmpty()) {
-            showSnackbar("No snow locations found yet! Try again in a moment.")
-            return
-        }
-
-        // Reset if we've gone through all locations
-        if (currentSnowIndex >= snowLocations.size - 1) {
-            currentSnowIndex = -1
-        }
-
-        // Sort locations by distance if this is the first click
-        if (currentSnowIndex == -1) {
-            snowLocations.sortBy { location ->
-                calculateDistance(
-                    madisonLocation.latitude, madisonLocation.longitude,
-                    location.position.latitude, location.position.longitude
-                )
-            }
-        }
-
-        // Move to next location
-        currentSnowIndex++
-        val location = snowLocations[currentSnowIndex]
-
-        // Reset previous highlighted marker to theme
-        val defaultColor = when (currentTheme) {
-            "dark" -> BitmapDescriptorFactory.HUE_BLUE
-            "snow" -> BitmapDescriptorFactory.HUE_BLUE
-            else -> BitmapDescriptorFactory.HUE_CYAN
-        }
-        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(defaultColor))
-
-        // Highlight current marker
-        location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
-        currentHighlightedMarker = location.marker
-
-        // Calculate distance
-        val distance = calculateDistance(
-            madisonLocation.latitude, madisonLocation.longitude,
-            location.position.latitude, location.position.longitude
-        )
-        val distanceInMiles = (distance * 0.621371).roundToInt()
-
-        // Animate camera
-        mMap.animateCamera(
-            CameraUpdateFactory.newLatLngZoom(location.position, 8f),
-            1500,
-            null
-        )
 
 
-        // Set new highlighted marker color based on current theme
-        val highlightColor = when (currentTheme) {
-            "dark" -> BitmapDescriptorFactory.HUE_YELLOW
-            "snow" -> BitmapDescriptorFactory.HUE_AZURE
-            else -> BitmapDescriptorFactory.HUE_VIOLET
-        }
-        location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(highlightColor))
-        currentHighlightedMarker = location.marker
-
-
-        // Show distance and location info
-        showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
-    }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val R = 6371 // Earth's radius in kilometers
@@ -715,57 +652,105 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 currentSnowIndex = -1
                 currentHighlightedMarker = null
 
-                val regions = listOf(
-                    Pair(45.0, -100.0),
-                    Pair(45.0, -80.0),
-                    Pair(45.0, -120.0),
-                    Pair(60.0, -100.0)
-                )
+                // Create grid points
+                val latitudes = (25..65 step 5).map { it.toDouble() }
+                val longitudes = (-160..-60 step 10).map { it.toDouble() }
+
+                // Create all coordinate pairs
+                val coordinates = latitudes.flatMap { lat ->
+                    longitudes.map { lon -> Pair(lat, lon) }
+                }.shuffled() // Shuffle to spread out the visible loading across the map
 
                 var totalSnowLocations = 0
+                val processedCities = mutableSetOf<String>()
 
-                for (region in regions) {
-                    val url = URL("https://api.openweathermap.org/data/2.5/find?" +
-                            "lat=${region.first}&lon=${region.second}" +
-                            "&cnt=50" +
-                            "&appid=$API_KEY")
+                // Process coordinates in batches
+                val batchSize = 5 // Number of API calls per batch
+                coordinates.chunked(batchSize).forEach { batch ->
+                    try {
+                        // Process each coordinate in the batch concurrently
+                        val deferredResults = batch.map { (lat, lon) ->
+                            async {
+                                try {
+                                    val url = URL("https://api.openweathermap.org/data/2.5/find?" +
+                                            "lat=$lat&lon=$lon" +
+                                            "&cnt=50" +
+                                            "&appid=$API_KEY")
 
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.requestMethod = "GET"
+                                    val connection = url.openConnection() as HttpURLConnection
+                                    connection.requestMethod = "GET"
+                                    connection.connectTimeout = 5000
+                                    connection.readTimeout = 5000
 
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
-                    val list = jsonResponse.getJSONArray("list")
-
-                    withContext(Dispatchers.Main) {
-                        for (i in 0 until list.length()) {
-                            val item = list.getJSONObject(i)
-                            val weather = item.getJSONArray("weather").getJSONObject(0)
-                            val weatherId = weather.getInt("id")
-
-                            if (weatherId in 600..622) {
-                                totalSnowLocations++
-                                val coord = item.getJSONObject("coord")
-                                val lat = coord.getDouble("lat")
-                                val lon = coord.getDouble("lon")
-                                val name = item.getString("name")
-                                val desc = weather.getString("description")
-                                val position = LatLng(lat, lon)
-
-                                val marker = mMap.addMarker(MarkerOptions()
-                                    .position(position)
-                                    .title("$name")
-                                    .snippet("Condition: $desc")
-                                    .icon(BitmapDescriptorFactory.defaultMarker(
-                                        when (currentTheme) {
-                                            "dark" -> BitmapDescriptorFactory.HUE_BLUE                                    "snow" -> BitmapDescriptorFactory.HUE_BLUE
-                                            else -> BitmapDescriptorFactory.HUE_CYAN
-                                        }
-                                    )))
-
-                                snowLocations.add(SnowLocation(position, name, desc, marker))
+                                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                                        val response = connection.inputStream.bufferedReader().use { it.readText() }
+                                        JSONObject(response)
+                                    } else {
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error fetching data for lat: $lat, lon: $lon", e)
+                                    null
+                                }
                             }
                         }
+
+                        // Wait for all requests in batch to complete
+                        deferredResults.awaitAll().filterNotNull().forEach { jsonResponse ->
+                            if (jsonResponse.getString("cod") == "200") {
+                                val list = jsonResponse.getJSONArray("list")
+
+                                withContext(Dispatchers.Main) {
+                                    for (i in 0 until list.length()) {
+                                        val item = list.getJSONObject(i)
+                                        val coord = item.getJSONObject("coord")
+                                        val cityLat = coord.getDouble("lat")
+                                        val cityLon = coord.getDouble("lon")
+
+                                        if (cityLat in 25.0..70.0 && cityLon in -170.0..-50.0) {
+                                            val name = item.getString("name")
+                                            val weather = item.getJSONArray("weather").getJSONObject(0)
+                                            val weatherId = weather.getInt("id")
+
+                                            val cityIdentifier = "$name:$cityLat:$cityLon"
+
+                                            if (weatherId in 600..622 && !processedCities.contains(cityIdentifier)) {
+                                                processedCities.add(cityIdentifier)
+                                                totalSnowLocations++
+
+                                                val desc = weather.getString("description")
+                                                val position = LatLng(cityLat, cityLon)
+
+                                                val marker = mMap.addMarker(MarkerOptions()
+                                                    .position(position)
+                                                    .title(name)
+                                                    .snippet("Condition: $desc")
+                                                    .icon(BitmapDescriptorFactory.defaultMarker(
+                                                        when (currentTheme) {
+                                                            "dark" -> BitmapDescriptorFactory.HUE_BLUE
+                                                            "snow" -> BitmapDescriptorFactory.HUE_BLUE
+                                                            else -> BitmapDescriptorFactory.HUE_CYAN
+                                                        }
+                                                    )))
+
+                                                snowLocations.add(SnowLocation(position, name, desc, marker))
+
+                                                // Show ongoing progress
+                                                if (totalSnowLocations % 5 == 0) {
+                                                    showSnackbar("Found $totalSnowLocations snow locations so far...")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Delay between batches
+                        delay(500) // 500ms delay between batches
+
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing batch", e)
                     }
                 }
 
@@ -773,17 +758,69 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     if (totalSnowLocations == 0) {
                         showSnackbar("No snow conditions found in North America")
                     } else {
-                        showSnackbar("Found $totalSnowLocations locations with snow!")
+                        showSnackbar("Search complete! Found $totalSnowLocations locations with snow!")
                     }
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching weather data", e)
+                Log.e(TAG, "Error in fetchSnowLocations", e)
                 withContext(Dispatchers.Main) {
-                    showSnackbar("Error fetching weather data: ${e.message}")
+                    val errorMessage = when (e) {
+                        is java.net.UnknownHostException -> "No internet connection"
+                        is java.net.SocketTimeoutException -> "Connection timed out"
+                        else -> "Error fetching weather data: ${e.message}"
+                    }
+                    showSnackbar(errorMessage)
                 }
             }
         }
+    }
+
+
+    // New function to find a random snow location
+    private fun findNextSnowLocation() {
+        if (snowLocations.isEmpty()) {
+            showSnackbar("No snow locations found yet! Try again in a moment.")
+            return
+        }
+
+        // Reset previous highlighted marker to theme
+        val defaultColor = when (currentTheme) {
+            "dark" -> BitmapDescriptorFactory.HUE_BLUE
+            "snow" -> BitmapDescriptorFactory.HUE_BLUE
+            else -> BitmapDescriptorFactory.HUE_CYAN
+        }
+        currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(defaultColor))
+
+        // Pick a random location
+        val randomIndex = (0 until snowLocations.size).random()
+        val location = snowLocations[randomIndex]
+
+        // Highlight the selected marker
+        val highlightColor = when (currentTheme) {
+            "dark" -> BitmapDescriptorFactory.HUE_YELLOW
+            "snow" -> BitmapDescriptorFactory.HUE_AZURE
+            else -> BitmapDescriptorFactory.HUE_VIOLET
+        }
+        location.marker?.setIcon(BitmapDescriptorFactory.defaultMarker(highlightColor))
+        currentHighlightedMarker = location.marker
+
+        // Calculate distance
+        val distance = calculateDistance(
+            madisonLocation.latitude, madisonLocation.longitude,
+            location.position.latitude, location.position.longitude
+        )
+        val distanceInMiles = (distance * 0.621371).roundToInt()
+
+        // Animate camera
+        mMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(location.position, 8f),
+            1500,
+            null
+        )
+
+        // Show distance and location info
+        showSnackbar("Found snow $distanceInMiles miles away at ${location.name}!")
     }
 
     // Add this extension function at the end of your MapsActivity class
