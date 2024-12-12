@@ -96,6 +96,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var currentTheme = "snow"  // Default theme
 
+    private var preferencesLoaded = false
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,8 +135,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Apply snow theme immediately after binding
-        applySnowTheme()
 
         binding.findSnowButton.setOnClickListener {
             findNextSnowLocation()
@@ -142,6 +143,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         settingsButton = binding.settingsButton
         userButton = binding.userButton
 
+        setupUserButton()
+        initializeMediaPlayer()
+
+        // Check if user is signed in and load their preferences
+        auth.currentUser?.let {
+            loadUserPreferences(it.uid)
+        } ?: run {
+            // If no user is signed in, apply defaults
+            applyDefaultSettings()
+        }
+
+
+        //Settings Button
         settingsButton.setOnClickListener { view ->
             // Get screen width for popup sizing
             val displayMetrics = resources.displayMetrics
@@ -335,9 +349,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             )
         }
 
-
-        setupUserButton()
-        initializeMusic()
     }
 
 
@@ -788,7 +799,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
     //Music
-    private fun initializeMusic() {
+    private fun initializeMediaPlayer() {
         mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
         mediaPlayer?.isLooping = true
         mediaPlayer?.setVolume(1.0f, 1.0f)
@@ -809,11 +820,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 Handler(Looper.getMainLooper()).postDelayed(this, 1000)
             }
         }, 1000)
-
-        // Only start music if it's enabled
-        if (isMusicEnabled) {
-            startMusic()
-        }
     }
 
     private fun startMusic() {
@@ -842,6 +848,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
+    private fun applyDefaultSettings() {
+        preferencesLoaded = true
+        currentTheme = "snow"
+        isMusicEnabled = true
+        applySnowTheme()
+        startMusic()
+    }
+
+
+
 
 
     private fun setupUserButton() {
@@ -854,6 +870,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             showLoginPopup()
         }
     }
+
+
 
     private fun showLoginPopup() {
         val popupView = layoutInflater.inflate(R.layout.login_popup, null)
@@ -942,6 +960,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
+                        // Load user preferences after successful sign in
+                        auth.currentUser?.let { user ->
+                            loadUserPreferences(user.uid)
+                        }
                         showSnackbar("Sign in successful!")
                         popupWindow.dismiss()
                     } else {
@@ -1078,6 +1100,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
+                        // Apply and save default preferences for new account
+                        applyDefaultSettings()
+                        saveUserPreferences()
                         showSnackbar("Account created successfully!")
                         popupWindow.dismiss()
                     } else {
@@ -1144,7 +1169,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         database.child("users").child(userId).child("preferences")
             .get()
             .addOnSuccessListener { snapshot ->
-                snapshot.getValue(UserPreferences::class.java)?.let { prefs ->
+                val prefs = snapshot.getValue(UserPreferences::class.java)
+                if (prefs != null) {
                     // Apply theme
                     when (prefs.theme) {
                         "dark" -> applyDarkTheme()
@@ -1159,10 +1185,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     } else {
                         stopMusic()
                     }
+
+                    preferencesLoaded = true
+                } else {
+                    // If no preferences found, apply defaults
+                    applyDefaultSettings()
                 }
             }
             .addOnFailureListener { e ->
                 showSnackbar("Failed to load preferences: ${e.message}")
+                // Apply defaults on failure
+                applyDefaultSettings()
             }
     }
 
