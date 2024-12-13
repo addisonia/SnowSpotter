@@ -152,8 +152,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
-    private var isMusicEnabled = true  // Default to true since music starts enabled
     private val musicScope = CoroutineScope(Dispatchers.Main + Job())
+    private companion object {
+        const val PREFS_NAME = "SnowSpotterPreferences"
+        const val MUSIC_ENABLED_KEY = "music_enabled"
+    }
+    private var isMusicEnabled: Boolean = true
+        set(value) {
+            field = value
+            // Save to SharedPreferences whenever the value changes
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(MUSIC_ENABLED_KEY, value)
+                .apply()
+        }
 
 
     private var currentTheme = "snow"  // Default theme
@@ -409,6 +421,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
                 saveUserPreferences()
             }
+
+            // Load music preference from SharedPreferences at startup
+            isMusicEnabled = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(MUSIC_ENABLED_KEY, true)
 
             // Show main menu centered
             popupWindow.showAtLocation(
@@ -910,7 +926,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun initializeMediaPlayer() {
         mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
         mediaPlayer?.apply {
-            isLooping = true
+            isLooping = false
             setVolume(0f, 0f)  // Start silent
         }
 
@@ -1000,7 +1016,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         isPreferencesInitialized = true
         currentTheme = "snow"
         currentBasemap = "standard"
-        isMusicEnabled = true
+
+        // Load music preference from SharedPreferences instead of defaulting to true
+        isMusicEnabled = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(MUSIC_ENABLED_KEY, true) // true is the default value if key doesn't exist
 
         if (mediaPlayer == null) {
             initializeMediaPlayer()
@@ -1392,8 +1411,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         else -> applySnowTheme(false)
                     }
 
-                    // Apply music setting
-                    isMusicEnabled = prefs.musicEnabled
+                    // Only update music setting from Firebase if it exists
+                    if (snapshot.hasChild("musicEnabled")) {
+                        isMusicEnabled = prefs.musicEnabled
+                    }
                     isPreferencesInitialized = true
 
                     // Initialize media player after preferences are loaded
@@ -1408,7 +1429,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
 
                     // Apply basemap setting
-                    if (this::mMap.isInitialized) {  // Check if map is ready
+                    if (this::mMap.isInitialized) {
                         when (prefs.basemap) {
                             "standard" -> {
                                 mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
