@@ -62,7 +62,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMapsBinding
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
     private val weatherScope = CoroutineScope(Dispatchers.IO + Job())
-    private val API_KEY = "6d05802c8dd306c4a02c96c9bf433ea2"
+    private lateinit var API_KEY: String
     private val TAG = "MapsActivity"
 
     private lateinit var auth: FirebaseAuth
@@ -176,6 +176,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize API key
+        API_KEY = getString(R.string.weather_api_key)
 
         // Initialize Firebase Auth
         auth = Firebase.auth
