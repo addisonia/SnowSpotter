@@ -687,13 +687,53 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(northAmerica, 100))
 
         // Enable location features if permission is granted
-        enableMyLocation()  // Add this new function call
+        enableMyLocation()
 
         // Customize map UI settings
         mMap.uiSettings.apply {
             isZoomControlsEnabled = true
             isCompassEnabled = true
-            isMyLocationButtonEnabled = true  // Make sure this is set to true
+            isMyLocationButtonEnabled = true
+        }
+
+        // Add marker click listener
+        mMap.setOnMarkerClickListener { clickedMarker ->
+            // Reset previous highlighted marker to default color
+            val defaultColor = when (currentTheme) {
+                "dark" -> BitmapDescriptorFactory.HUE_BLUE
+                "snow" -> BitmapDescriptorFactory.HUE_BLUE
+                else -> BitmapDescriptorFactory.HUE_CYAN
+            }
+            currentHighlightedMarker?.setIcon(BitmapDescriptorFactory.defaultMarker(defaultColor))
+
+            // Set new highlighted marker
+            val highlightColor = when (currentTheme) {
+                "dark" -> BitmapDescriptorFactory.HUE_YELLOW
+                "snow" -> BitmapDescriptorFactory.HUE_AZURE
+                else -> BitmapDescriptorFactory.HUE_VIOLET
+            }
+            clickedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(highlightColor))
+            currentHighlightedMarker = clickedMarker
+
+            // Calculate distance to clicked location
+            val clickedLocation = clickedMarker.position
+            val distance = calculateDistance(
+                madisonLocation.latitude, madisonLocation.longitude,
+                clickedLocation.latitude, clickedLocation.longitude
+            )
+            val distanceInMiles = (distance * 0.621371).roundToInt()
+
+            // Show distance and location info
+            showSnackbar("Found snow $distanceInMiles miles away at ${clickedMarker.title}!")
+
+            // Animate camera to marker
+            mMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(clickedLocation, 8f),
+                1500,
+                null
+            )
+
+            true // Consume the event
         }
 
         createUserLocationMarker()
