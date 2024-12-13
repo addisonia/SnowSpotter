@@ -108,8 +108,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         auth = Firebase.auth
         // Initialize Firebase Database
         database = Firebase.database.reference
-        // Check if user is signed in and load their preferences
-        auth.currentUser?.let { loadUserPreferences(it.uid) }
 
 
         //customize the title
@@ -134,6 +132,24 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Add this block to immediately set initial theme
+        when (currentTheme) {
+            "dark" -> {
+                window.decorView.setBackgroundColor(Color.BLACK)
+                binding?.root?.setBackgroundColor(Color.BLACK)
+            }
+            "blizzard" -> {
+                val blizzardColor = Color.argb(255, 240, 245, 255)
+                window.decorView.setBackgroundColor(blizzardColor)
+                binding?.root?.setBackgroundColor(blizzardColor)
+            }
+            else -> {
+                // Snow theme
+                window.decorView.setBackgroundColor(Color.parseColor("#354347"))
+                binding?.root?.setBackgroundColor(Color.parseColor("#354347"))
+            }
+        }
 
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -1191,6 +1207,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun loadUserPreferences(userId: String) {
+        // Set a loading state immediately
+        binding.root.visibility = View.INVISIBLE  // Hide main content while loading
+
         database.child("users").child(userId).child("preferences")
             .get()
             .addOnSuccessListener { snapshot ->
@@ -1215,10 +1234,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 } else {
                     applyDefaultSettings()
                 }
+                binding?.root?.visibility = View.VISIBLE  // Show content after theme is applied
             }
             .addOnFailureListener { e ->
                 showSnackbar("Failed to load preferences: ${e.message}")
                 applyDefaultSettings()
+                binding?.root?.visibility = View.VISIBLE
             }
     }
 
