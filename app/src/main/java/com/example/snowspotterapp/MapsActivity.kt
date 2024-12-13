@@ -467,6 +467,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun applySnowTheme(showMessage: Boolean = true) {
         overlay?.visibility = View.GONE
 
+        // Set status and navigation bar color to match theme
+        window.statusBarColor = Color.parseColor("#354347")
+        window.navigationBarColor = Color.parseColor("#354347")
+
         // Set new background colors with updated snow theme color
         binding.root.setBackgroundColor(Color.parseColor("#354347"))
         supportActionBar?.setBackgroundDrawable(ColorDrawable(Color.parseColor("#354347")))
@@ -503,6 +507,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         overlay = binding.themeOverlay
         overlay?.setBackgroundColor(Color.argb(120, 0, 0, 0))
         overlay?.visibility = View.VISIBLE
+
+        // Set status and navigation bar to pure black to match theme
+        window.statusBarColor = Color.BLACK
+        window.navigationBarColor = Color.BLACK
 
         // Pure black for both background and title
         val darkBackground = Color.BLACK
@@ -542,6 +550,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         overlay = binding.themeOverlay
         overlay?.setBackgroundColor(Color.argb(255, 240, 245, 255))
         overlay?.visibility = View.VISIBLE
+
+        // Set status adn navigation bar to match blizzard theme
+        window.statusBarColor = Color.argb(255, 240, 245, 255)
+        window.navigationBarColor = Color.argb(255, 240, 245, 255)
 
         // Keep title banner's blue-white, but make background pure white
         val blizzardBanner = Color.argb(255, 240, 245, 255)  // Light blue-white for banner

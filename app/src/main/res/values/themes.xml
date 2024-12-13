@@ -1,24 +1,31 @@
 <resources>
-    <!-- Base application theme -->
-    <style name="Theme.SnowSpotterApp2" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color -->
-        <item name="colorPrimary">@color/white</item>
-        <item name="colorPrimaryVariant">#E0E5F0</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <!-- Secondary brand color -->
-        <item name="colorSecondary">#2196F3</item>
-        <item name="colorSecondaryVariant">#1976D2</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Button style -->
-        <item name="materialButtonStyle">@style/Widget.App.Button</item>
-    </style>
+<!-- Base application theme -->
+<style name="Theme.SnowSpotterApp2" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <!-- Primary brand color -->
+    <item name="colorPrimary">@color/white</item>
+    <item name="colorPrimaryVariant">@color/snow_theme</item>
+    <item name="colorOnPrimary">@color/black</item>
+    <!-- Secondary brand color -->
+    <item name="colorSecondary">#2196F3</item>
+    <item name="colorSecondaryVariant">#1976D2</item>
+    <item name="colorOnSecondary">@color/white</item>
+    <!-- Status bar, Navigation bar, and ActionBar color -->
+    <item name="android:statusBarColor">@color/snow_theme</item>
+    <item name="android:navigationBarColor">@color/snow_theme</item>
+    <item name="actionBarStyle">@style/Widget.App.ActionBar</item>
+    <!-- Button style -->
+    <item name="materialButtonStyle">@style/Widget.App.Button</item>
+</style>
 
-    <!-- Custom button style -->
-    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">#2196F3</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="elevation">4dp</item>
-    </style>
+<!-- Custom ActionBar style -->
+<style name="Widget.App.ActionBar" parent="Widget.MaterialComponents.ActionBar.Primary">
+    <item name="background">@color/snow_theme</item>
+</style>
+
+<!-- Custom button style -->
+<style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+    <item name="backgroundTint">#2196F3</item>
+    <item name="android:textColor">@color/white</item>
+    <item name="elevation">4dp</item>
+</style>
 </resources>
