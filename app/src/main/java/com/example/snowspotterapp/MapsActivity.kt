@@ -153,6 +153,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var mediaPlayer: MediaPlayer? = null
     private var isMusicPlaying = false
     private var isMusicEnabled = true  // Default to true since music starts enabled
+    private val musicScope = CoroutineScope(Dispatchers.Main + Job())
 
 
     private var currentTheme = "snow"  // Default theme
@@ -397,7 +398,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }, 300)
             }
 
-            // Music toggle
             val musicToggle = popupView.findViewById<Switch>(R.id.musicToggle)
             musicToggle.isChecked = isMusicEnabled
             musicToggle.setOnCheckedChangeListener { _, isChecked ->
@@ -405,7 +405,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (isChecked) {
                     startMusic()
                 } else {
-                    stopMusic()
+                    stopMusic(immediate = true)  // Add immediate = true here
                 }
                 saveUserPreferences()
             }
@@ -911,7 +911,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
         mediaPlayer?.apply {
             isLooping = true
-            setVolume(0f, 0f)  // Start with volume at 0
+            setVolume(0f, 0f)  // Start silent
         }
 
         // Don't start playing immediately - wait for preferences
@@ -919,17 +919,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             startMusic()
         }
 
+        // Remove the old fade handling from here since we'll handle it in startMusic
         val songDuration = mediaPlayer?.duration ?: 0
 
         Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
             override fun run() {
                 mediaPlayer?.let { player ->
                     val currentPosition = player.currentPosition
+                    // Start fade out 5 seconds before the end
                     if (currentPosition >= songDuration - 5000) {
-                        fadeOutMusic()
-                    }
-                    if (currentPosition < 100) {
-                        fadeInMusic()
+                        fadeOutMusic(5000)
                     }
                 }
                 Handler(Looper.getMainLooper()).postDelayed(this, 1000)
@@ -937,40 +936,60 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }, 1000)
     }
 
+    private fun fadeInMusic(duration: Long = 5000) {
+        musicScope.launch {
+            val steps = 50 // Number of volume steps
+            val stepDuration = duration / steps
+            val volumeIncrement = 1f / steps
+
+            mediaPlayer?.setVolume(0f, 0f)
+
+            for (i in 1..steps) {
+                val volume = volumeIncrement * i
+                mediaPlayer?.setVolume(volume, volume)
+                delay(stepDuration)
+            }
+        }
+    }
+
+    private fun fadeOutMusic(duration: Long = 1500) {
+        musicScope.launch {
+            val steps = 50 // Number of volume steps
+            val stepDuration = duration / steps
+            val volumeDecrement = 1f / steps
+
+            var currentVolume = 1f
+            for (i in 1..steps) {
+                currentVolume -= volumeDecrement
+                mediaPlayer?.setVolume(currentVolume, currentVolume)
+                delay(stepDuration)
+            }
+        }
+    }
+
     private fun startMusic() {
         if (!isMusicPlaying && isMusicEnabled) {
             mediaPlayer?.let { player ->
+                player.setVolume(0f, 0f)  // Ensure we start silent
                 player.start()
-                fadeInMusic()
+                fadeInMusic(5000)  // 5 second fade in
                 isMusicPlaying = true
             }
         }
     }
 
-    private fun fadeInMusic(duration: Long = 1500) {  // 1500ms = 1.5 seconds
-        val fadeIn = ValueAnimator.ofFloat(0f, 1f)
-        fadeIn.duration = duration
-        fadeIn.addUpdateListener { animation ->
-            val volume = animation.animatedValue as Float
-            mediaPlayer?.setVolume(volume, volume)
-        }
-        fadeIn.start()
-    }
-
-    private fun fadeOutMusic(duration: Long = 5000) {  // 5000ms = 5 seconds
-        val fadeOut = ValueAnimator.ofFloat(1.0f, 0.0f)
-        fadeOut.duration = duration
-        fadeOut.addUpdateListener { animation ->
-            val volume = animation.animatedValue as Float
-            mediaPlayer?.setVolume(volume, volume)
-        }
-        fadeOut.start()
-    }
-
-    private fun stopMusic() {
+    private fun stopMusic(immediate: Boolean = false) {
         if (isMusicPlaying) {
-            mediaPlayer?.pause()
-            isMusicPlaying = false
+            if (immediate) {
+                mediaPlayer?.pause()
+                isMusicPlaying = false
+            } else {
+                fadeOutMusic(1500)  // 1.5 second fade out
+                Handler(Looper.getMainLooper()).postDelayed({
+                    mediaPlayer?.pause()
+                    isMusicPlaying = false
+                }, 1500)
+            }
         }
     }
 
@@ -1462,6 +1481,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onDestroy() {
         super.onDestroy()
+        musicScope.cancel()
         mediaPlayer?.release()
         mediaPlayer = null
         weatherScope.cancel()
