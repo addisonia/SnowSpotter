@@ -30,6 +30,7 @@ import android.widget.Switch
 import androidx.appcompat.app.ActionBar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import com.example.snowspotterapp.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -189,6 +190,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        applyTenorite()
 
         // Add this block to immediately set initial theme
         when (currentTheme) {
@@ -421,6 +424,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // Helper function to set text colors recursively
     private fun setPopupTextColors(view: View, color: Int) {
+        val tenorite = ResourcesCompat.getFont(this, R.font.tenorite_regular)
         when (view) {
             is ViewGroup -> {
                 for (i in 0 until view.childCount) {
@@ -429,6 +433,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             is TextView -> {
                 view.setTextColor(color)
+                view.typeface = tenorite
             }
         }
     }
@@ -1376,6 +1381,44 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 applyDefaultSettings()
                 binding.root.visibility = View.VISIBLE
             }
+    }
+
+
+    //Font
+    private fun applyTenorite() {
+        // Get the custom font
+        val tenorite = ResourcesCompat.getFont(this, R.font.tenorite_regular)
+        val tenoriteRegular = ResourcesCompat.getFont(this, R.font.tenorite_regular)
+        val tenoriteBold = ResourcesCompat.getFont(this, R.font.tenorite_bold)
+        val tenoriteItalic = ResourcesCompat.getFont(this, R.font.tenorite_italic)
+        val tenoriteBoldItalic = ResourcesCompat.getFont(this, R.font.tenorite_bold_italic)
+
+        // Apply bold to title
+        val titleTextView = supportActionBar?.customView as? TextView
+        titleTextView?.typeface = tenoriteBold
+
+        // Apply regular to other text
+        binding.findSnowButton.typeface = tenoriteRegular
+
+        // Apply to all buttons
+        binding.findSnowButton.typeface = tenorite
+        binding.settingsButton.typeface = tenorite
+        binding.userButton.typeface = tenorite
+
+        // Apply to any other text views in your layouts
+        // You might want to create a recursive function for this
+        applyFontToViewGroup(binding.root, tenorite)
+    }
+
+    private fun applyFontToViewGroup(viewGroup: ViewGroup, typeface: Typeface?) {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            when (child) {
+                is TextView -> child.typeface = typeface
+                is Button -> child.typeface = typeface
+                is ViewGroup -> applyFontToViewGroup(child, typeface)
+            }
+        }
     }
 
 
