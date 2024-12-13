@@ -1230,26 +1230,78 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun showProfileOptions() {
-        val popupMenu = PopupMenu(this, userButton)
-        popupMenu.menu.add("Sign Out")
-        popupMenu.setOnMenuItemClickListener { item ->
-            when (item.title) {
-                "Sign Out" -> {
-                    auth.signOut()
-                    // Reset to defaults
-                    applySnowTheme()
-                    isMusicEnabled = true
-                    startMusic()
-                    mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
-                    mMap.setMapStyle(null)
-                    currentBasemap = "standard"
-                    showSnackbar("Signed out successfully")
-                    true
+        // Get screen width for popup sizing
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val popupWidth = (screenWidth * 2) / 3  // Match other popups width
+
+        val popupView = layoutInflater.inflate(R.layout.signout_popup, null)
+        val popupWindow = PopupWindow(
+            popupView,
+            popupWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(null)
+
+        // Create rounded corner background
+        val background = GradientDrawable().apply {
+            cornerRadius = 14f * resources.displayMetrics.density
+            setStroke(1, Color.parseColor("#E0E0E0"))
+        }
+
+        // Apply theme colors
+        when (currentTheme) {
+            "dark" -> {
+                background.setColor(Color.argb(255, 40, 40, 40))
+                setPopupTextColors(popupView, Color.WHITE)
+                popupView.findViewById<Button>(R.id.signOutButton).setBackgroundColor(Color.argb(255, 80, 80, 80))
+            }
+            "blizzard" -> {
+                background.setColor(Color.argb(255, 240, 245, 255))
+                popupView.findViewById<Button>(R.id.signOutButton).setBackgroundColor(Color.argb(255, 200, 220, 255))
+            }
+            else -> {
+                // Snow theme
+                background.setColor(Color.WHITE)
+                val defaultColor = getColor(com.google.android.material.R.color.m3_sys_color_dynamic_light_primary)
+                setPopupTextColors(popupView, defaultColor)
+                popupView.findViewById<Button>(R.id.signOutButton).apply {
+                    setBackgroundColor(defaultColor)
+                    setTextColor(Color.WHITE)
                 }
-                else -> false
             }
         }
-        popupMenu.show()
+
+        popupView.background = background
+
+        // Set up sign out button click listener
+        popupView.findViewById<Button>(R.id.signOutButton).setOnClickListener {
+            auth.signOut()
+            // Reset to defaults
+            applySnowTheme()
+            isMusicEnabled = true
+            startMusic()
+            mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+            mMap.setMapStyle(null)
+            currentBasemap = "standard"
+            showSnackbar("Signed out successfully")
+            popupWindow.dismiss()
+        }
+
+        // Set up cancel button click listener
+        popupView.findViewById<Button>(R.id.cancelButton).setOnClickListener {
+            popupWindow.dismiss()
+        }
+
+        // Show popup centered on screen
+        popupWindow.showAtLocation(
+            binding.root,
+            Gravity.CENTER,
+            0,
+            0
+        )
     }
 
     private fun saveUserPreferences() {
