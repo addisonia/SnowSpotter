@@ -1240,6 +1240,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     applySnowTheme()
                     isMusicEnabled = true
                     startMusic()
+                    mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+                    mMap.setMapStyle(null)
+                    currentBasemap = "standard"
                     showSnackbar("Signed out successfully")
                     true
                 }
