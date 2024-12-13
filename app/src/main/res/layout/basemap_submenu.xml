@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Basemap 1"
+            android:text="Standard"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Basemap 2"
+            android:text="Hybrid"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>
@@ -38,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Basemap 3"
+            android:text="Dark Mode"
             android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"/>

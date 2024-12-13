@@ -83,6 +83,63 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         var marker: Marker? = null
     )
 
+    private var currentBasemap = "standard"
+    private val darkMapStyle = """
+    [
+      {
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#212121"
+          }
+        ]
+      },
+      {
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#757575"
+          }
+        ]
+      },
+      {
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {
+            "color": "#212121"
+          }
+        ]
+      },
+      {
+        "featureType": "administrative",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#757575"
+          }
+        ]
+      },
+      {
+        "featureType": "road",
+        "elementType": "geometry.fill",
+        "stylers": [
+          {
+            "color": "#2c2c2c"
+          }
+        ]
+      },
+      {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#000000"
+          }
+        ]
+      }
+    ]
+    """
+
     private var userCircle: Circle? = null
     private val BASE_CIRCLE_RADIUS = 10000.0
 
@@ -291,19 +348,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 themeSubmenuWindow.dismiss()
             }
 
-            // Basemap submenu listeners
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
-                showSnackbar("Basemap 1 selected")
-                basemapSubmenuWindow.dismiss()
-            }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
-                showSnackbar("Basemap 2 selected")
-                basemapSubmenuWindow.dismiss()
-            }
-            basemapSubmenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
-                showSnackbar("Basemap 3 selected")
-                basemapSubmenuWindow.dismiss()
-            }
+            // Set up basemap submenu listeners
+            setupBasemapSubmenuListeners(basemapSubmenuView, basemapSubmenuWindow)
 
             // Main menu option1 (Theme) click handler
             popupView.findViewById<LinearLayout>(R.id.option1Container).setOnClickListener {
@@ -514,15 +560,30 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun setupBasemapSubmenuListeners(submenuView: View, submenuWindow: PopupWindow) {
         submenuView.findViewById<TextView>(R.id.basemapOption1).setOnClickListener {
-            showSnackbar("Basemap 1 selected")
+            mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+            mMap.setMapStyle(null)
+            currentBasemap = "standard"
+            saveUserPreferences()
+            showSnackbar("Standard basemap selected")
             submenuWindow.dismiss()
         }
+
         submenuView.findViewById<TextView>(R.id.basemapOption2).setOnClickListener {
-            showSnackbar("Basemap 2 selected")
+            mMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+            mMap.setMapStyle(null)
+            currentBasemap = "hybrid"
+            saveUserPreferences()
+            showSnackbar("Hybrid basemap selected")
             submenuWindow.dismiss()
         }
+
         submenuView.findViewById<TextView>(R.id.basemapOption3).setOnClickListener {
-            showSnackbar("Basemap 3 selected")
+            mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+            val style = MapStyleOptions(darkMapStyle)
+            mMap.setMapStyle(style)
+            currentBasemap = "dark"
+            saveUserPreferences()
+            showSnackbar("Dark basemap selected")
             submenuWindow.dismiss()
         }
     }
@@ -757,7 +818,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         }
 
                         // Delay between batches
-                        delay(500) // 500ms delay between batches
+                        delay(250) // 500ms delay between batches
 
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing batch", e)
@@ -892,6 +953,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun applyDefaultSettings() {
         preferencesLoaded = true
         currentTheme = "snow"
+        currentBasemap = "standard"
         isMusicEnabled = true
         applySnowTheme()
         startMusic()
@@ -1192,7 +1254,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val preferences = UserPreferences(
                 theme = currentTheme,
                 musicEnabled = isMusicEnabled,
-                basemap = "default"
+                basemap = currentBasemap
             )
 
             database.child("users").child(user.uid).child("preferences")
@@ -1207,8 +1269,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun loadUserPreferences(userId: String) {
-        // Set a loading state immediately
-        binding.root.visibility = View.INVISIBLE  // Hide main content while loading
+        binding.root.visibility = View.INVISIBLE
 
         database.child("users").child(userId).child("preferences")
             .get()
@@ -1230,16 +1291,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         stopMusic()
                     }
 
+                    // Apply basemap setting
+                    if (this::mMap.isInitialized) {  // Check if map is ready
+                        when (prefs.basemap) {
+                            "standard" -> {
+                                mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+                                mMap.setMapStyle(null)
+                            }
+                            "hybrid" -> {
+                                mMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+                                mMap.setMapStyle(null)
+                            }
+                            "dark" -> {
+                                mMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+                                mMap.setMapStyle(MapStyleOptions(darkMapStyle))
+                            }
+                        }
+                        currentBasemap = prefs.basemap
+                    }
+
                     preferencesLoaded = true
                 } else {
                     applyDefaultSettings()
                 }
-                binding?.root?.visibility = View.VISIBLE  // Show content after theme is applied
+                binding.root.visibility = View.VISIBLE
             }
             .addOnFailureListener { e ->
                 showSnackbar("Failed to load preferences: ${e.message}")
                 applyDefaultSettings()
-                binding?.root?.visibility = View.VISIBLE
+                binding.root.visibility = View.VISIBLE
             }
     }
 
