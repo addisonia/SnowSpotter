@@ -68,6 +68,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var auth: FirebaseAuth
     private lateinit var database: DatabaseReference
 
+    private var isPreferencesInitialized = false
+
     // Madison, WI coordinates
     private val madisonLocation = LatLng(43.0731, -89.4012)
     private var userMarker: Marker? = null
@@ -224,7 +226,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         userButton = binding.userButton
 
         setupUserButton()
-        initializeMediaPlayer()
 
         // Check if user is signed in and load their preferences
         auth.currentUser?.let {
@@ -908,8 +909,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     //Music
     private fun initializeMediaPlayer() {
         mediaPlayer = MediaPlayer.create(this, R.raw.hypnogogis)
-        mediaPlayer?.isLooping = true
-        mediaPlayer?.setVolume(1.0f, 1.0f)
+        mediaPlayer?.apply {
+            isLooping = true
+            setVolume(0f, 0f)  // Start with volume at 0
+        }
+
+        // Don't start playing immediately - wait for preferences
+        if (isPreferencesInitialized && isMusicEnabled) {
+            startMusic()
+        }
 
         val songDuration = mediaPlayer?.duration ?: 0
 
@@ -921,7 +929,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         fadeOutMusic()
                     }
                     if (currentPosition < 100) {
-                        player.setVolume(1.0f, 1.0f)
+                        fadeInMusic()
                     }
                 }
                 Handler(Looper.getMainLooper()).postDelayed(this, 1000)
@@ -930,10 +938,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun startMusic() {
-        if (!isMusicPlaying && isMusicEnabled) {  // Check if music is enabled
-            mediaPlayer?.start()
-            isMusicPlaying = true
+        if (!isMusicPlaying && isMusicEnabled) {
+            mediaPlayer?.let { player ->
+                player.start()
+                fadeInMusic()
+                isMusicPlaying = true
+            }
         }
+    }
+
+    private fun fadeInMusic(duration: Long = 1500) {  // 1500ms = 1.5 seconds
+        val fadeIn = ValueAnimator.ofFloat(0f, 1f)
+        fadeIn.duration = duration
+        fadeIn.addUpdateListener { animation ->
+            val volume = animation.animatedValue as Float
+            mediaPlayer?.setVolume(volume, volume)
+        }
+        fadeIn.start()
     }
 
     private fun fadeOutMusic(duration: Long = 5000) {  // 5000ms = 5 seconds
@@ -957,14 +978,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun applyDefaultSettings() {
         preferencesLoaded = true
+        isPreferencesInitialized = true
         currentTheme = "snow"
         currentBasemap = "standard"
         isMusicEnabled = true
+
+        if (mediaPlayer == null) {
+            initializeMediaPlayer()
+        } else {
+            if (isMusicEnabled) {
+                startMusic()
+            } else {
+                stopMusic()
+            }
+        }
+
         applySnowTheme()
-        startMusic()
     }
-
-
 
 
 
@@ -1345,10 +1375,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     // Apply music setting
                     isMusicEnabled = prefs.musicEnabled
-                    if (isMusicEnabled) {
-                        startMusic()
+                    isPreferencesInitialized = true
+
+                    // Initialize media player after preferences are loaded
+                    if (mediaPlayer == null) {
+                        initializeMediaPlayer()
                     } else {
-                        stopMusic()
+                        if (isMusicEnabled) {
+                            startMusic()
+                        } else {
+                            stopMusic()
+                        }
                     }
 
                     // Apply basemap setting
